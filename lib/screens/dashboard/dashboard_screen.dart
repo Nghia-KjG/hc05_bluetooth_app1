@@ -50,7 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: MainAppBar(
-        title: 'LƯU TRÌNH CÂN CAO SU XƯỞNG ĐẾ',
+        title: 'LƯU TRÌNH CÂN KEO BÁN THÀNH PHẨM',
         bluetoothService: _bluetoothService,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

@@ -18,12 +18,14 @@ import 'screens/settings/settings_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  //final dir = await getApplicationDocumentsDirectory();
-  //final path = join(dir.path, "weighing_app.db");
-  //await deleteDatabase(path);
-  //if (kDebugMode) {
-  // print('🗑️ Database cũ đã bị xóa.');
-  //}
+  /* này dùng để xóa database cũ khi cần thiết
+  final dir = await getApplicationDocumentsDirectory();
+  final path = join(dir.path, "weighing_app.db");
+  await deleteDatabase(path);
+  if (kDebugMode) {
+   print('🗑️ Database cũ đã bị xóa.');
+  }
+  */
   await SettingsService().init();
   runApp(const MyApp());
 }

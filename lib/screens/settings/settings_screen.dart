@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/settings_service.dart';
+import 'package:flutter/foundation.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -116,17 +117,19 @@ class SettingsScreen extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 16),
-                _buildSliderSetting(
-                  label: 'Độ chênh lệch tối đa (test): ${(settings.stabilityThreshold * 1000).toStringAsFixed(0)}g',
-                  value: settings.stabilityThreshold,
-                  min: 0.01,
-                  max: 1.0,
-                  step: 0.01,
-                  valueLabel: (v) => '${(v * 1000).toStringAsFixed(0)}g',
-                  onChanged: (value) {
-                    settings.updateStabilityThreshold(value);
-                  },
-                ),
+                if (kDebugMode) ...[
+                  _buildSliderSetting(
+                    label: 'Độ chênh lệch tối đa (test): ${(settings.stabilityThreshold * 1000).toStringAsFixed(0)}g',
+                    value: settings.stabilityThreshold,
+                    min: 0.01,
+                    max: 1.0,
+                    step: 0.01,
+                    valueLabel: (v) => '${(v * 1000).toStringAsFixed(0)}g',
+                    onChanged: (value) {
+                      settings.updateStabilityThreshold(value);
+                    },
+                  ),
+                ],
               ],
               const SizedBox(height: 32),
 

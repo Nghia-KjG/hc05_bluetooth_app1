@@ -10,6 +10,71 @@ class SyncService {
   final String _apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:3636';
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
+  /// Đồng bộ danh sách người dùng từ /api/sync/persons (cho offline login)
+  Future<void> syncPersons() async {
+    if (kDebugMode) {
+      print('🔄 Đang tải danh sách người dùng từ /api/sync/persons...');
+    }
+    try {
+      final url = Uri.parse('$_apiBaseUrl/api/sync/persons');
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        throw Exception('API Sync Persons thất bại: ${response.statusCode}');
+      }
+
+      final data = json.decode(response.body);
+      if (kDebugMode) {
+        print('📋 Phản hồi API: $data');
+      }
+
+      // Xử lý dữ liệu trả về (có thể là array hoặc object)
+      List<Map<String, dynamic>> persons = [];
+
+      if (data is List) {
+        // Nếu API trả về array
+        persons = List<Map<String, dynamic>>.from(
+          data.map((item) => {
+            'mUserID': item['MUserID']?.toString(),
+            'nguoiThaoTac': item['UserName'],
+          })
+        );
+      } else if (data is Map && data['data'] is List) {
+        // Nếu API trả về object với key 'data'
+        persons = List<Map<String, dynamic>>.from(
+          (data['data'] as List).map((item) => {
+            'mUserID': item['MUserID']?.toString(),
+            'nguoiThaoTac': item['UserName'],
+          })
+        );
+      } else if (data is Map && data['persons'] is List) {
+        // Nếu API trả về object với key 'persons'
+        persons = List<Map<String, dynamic>>.from(
+          (data['persons'] as List).map((item) => {
+            'mUserID': item['MUserID']?.toString(),
+            'nguoiThaoTac': item['UserName'],
+          })
+        );
+      }
+
+      if (persons.isNotEmpty) {
+        await _dbHelper.updateVmlPersion(persons);
+        if (kDebugMode) {
+          print('✅ Đã cập nhật VmlPersion: ${persons.length} người dùng');
+        }
+      } else {
+        if (kDebugMode) {
+          print('⚠️ Không tìm thấy dữ liệu người dùng trong response');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Lỗi đồng bộ người dùng: $e');
+      }
+      throw Exception('Lỗi đồng bộ người dùng: $e');
+    }
+  }
+
   Future<void> syncAllData() async {
     if (kDebugMode) {
       print('🔄 Bắt đầu đồng bộ TẤT CẢ dữ liệu chưa cân...');
@@ -32,11 +97,10 @@ class SyncService {
       final db = await _dbHelper.database;
       final batch = db.batch();
 
-      // 3. XÓA SẠCH CACHE CŨ
-      // (Để đảm bảo các mã ĐÃ CÂN bởi người khác cũng bị xóa)
+      // 3. XÓA SẠCH CACHE CŨ (Lưu ý: `VmlPersion` được quản lý riêng bởi `/api/sync/persons`)
+      // Xóa các bảng dữ liệu cân/đơn hàng, nhưng KHÔNG xóa `VmlPersion` ở đây
       batch.delete('VmlWorkS');
       batch.delete('VmlWork');
-      batch.delete('VmlPersion');
 
       // 4. Lặp qua dữ liệu mới và "Nhồi" (Populate)
       for (var item in data) {
@@ -68,11 +132,8 @@ class SyncService {
           'totalTargetQty': item['totalTargetQty'],
         }, conflictAlgorithm: ConflictAlgorithm.replace);
         
-        // Thêm vào VmlPersion
-        batch.insert('VmlPersion', {
-          'mUserID': item['mUserID']?.toString(),
-          'nguoiThaoTac': item['nguoiThaoTac'],
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
+        // NOTE: Không thêm vào VmlPersion ở đây — danh sách người dùng
+        // được lấy từ /api/sync/persons và cập nhật bởi syncPersons().
       }
 
       // 5. Commit batch

@@ -14,7 +14,7 @@ class WeightStabilityMonitor {
   int _stabilizationDelay;
 
   // Độ chênh lệch tối đa để coi là ổn định (kg) - từ SettingsService
-  double _stabilityThreshold;
+  final double _stabilityThreshold;
 
   // Timer để kiểm tra định kỳ
   Timer? _checkTimer;

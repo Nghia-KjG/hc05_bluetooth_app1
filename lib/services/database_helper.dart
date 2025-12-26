@@ -77,6 +77,26 @@ class DatabaseHelper {
     ''');
   }
 
+  /// Cập nhật bảng VmlPersion từ danh sách người dùng từ API/Sync
+  /// (Được gọi sau khi đăng nhập online để lưu cache cho offline login)
+  Future<void> updateVmlPersion(List<Map<String, dynamic>> users) async {
+    final db = await database;
+    final batch = db.batch();
+
+    // Xóa dữ liệu cũ
+    batch.delete('VmlPersion');
+
+    // Thêm dữ liệu mới
+    for (var user in users) {
+      batch.insert('VmlPersion', {
+        'mUserID': user['mUserID']?.toString(),
+        'nguoiThaoTac': user['nguoiThaoTac'],
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    await batch.commit(noResult: true);
+  }
+
   // Tự động thêm cột mới nếu DB cũ không có
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {

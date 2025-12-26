@@ -77,6 +77,9 @@ class _LoginScreenState extends State<LoginScreen> {
             userName = data['userData']['UserName'] as String;
             successMessage = data['message'];
             
+            // Đồng bộ danh sách người dùng từ /api/sync/persons (cho offline login)
+            await _syncPersonsForOfflineLogin();
+            
             // Chạy đồng bộ ngầm (không cần await)
             _runSync(); 
 
@@ -148,7 +151,19 @@ class _LoginScreenState extends State<LoginScreen> {
     return localUser.first['nguoiThaoTac'] as String;
   }
 
-  // --- 6. HÀM HELPER MỚI (ĐỂ CHẠY SYNC NGẦM) ---
+  // --- 6. HÀM HELPER (ĐỒNG BỘ DANH SÁCH NGƯỜI DÙNG TỪ /api/sync/persons) ---
+  Future<void> _syncPersonsForOfflineLogin() async {
+    try {
+      if (kDebugMode) print('👥 Đang tải danh sách người dùng cho offline login...');
+      await SyncService().syncPersons();
+      if (kDebugMode) print('✅ Đã tải danh sách người dùng thành công');
+    } catch (e) {
+      // Không báo lỗi vì người dùng vẫn có thể đăng nhập online
+      if (kDebugMode) print('⚠️ Lỗi tải danh sách người dùng: $e');
+    }
+  }
+
+  // --- 7. HÀM HELPER (CHẠY SYNC NGẦM) ---
   Future<void> _runSync() async {
     // (Hàm này chạy ngầm, không báo toast)
     try {
