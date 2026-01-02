@@ -20,7 +20,7 @@ class DatabaseHelper {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "weighing_app.db");
 
-    return await openDatabase(path, version: 3, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: 4, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future _onCreate(Database db, int version) async {
@@ -75,6 +75,13 @@ class DatabaseHelper {
         failedAt TEXT
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE Devices (
+        address TEXT PRIMARY KEY,
+        name TEXT
+      )
+    ''');
   }
 
   /// Cập nhật bảng VmlPersion từ danh sách người dùng từ API/Sync
@@ -115,6 +122,15 @@ class DatabaseHelper {
           loai TEXT,
           errorMessage TEXT,
           failedAt TEXT
+        )
+      ''');
+    }
+
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS Devices (
+          address TEXT PRIMARY KEY,
+          name TEXT
         )
       ''');
     }
@@ -210,5 +226,42 @@ class DatabaseHelper {
     final result = await db.query('VmlWorkS',
         where: 'maCode = ? AND loai = ?', whereArgs: [maCode, 'nhap']);
     return result.isNotEmpty;
+  }
+
+  /// Cập nhật bảng Devices từ API /api/sync/devices
+  Future<void> updateDevices(List<Map<String, dynamic>> devices) async {
+    final db = await database;
+    final batch = db.batch();
+
+    batch.delete('Devices');
+
+    for (final device in devices) {
+      final String? address = device['address']?.toString().toUpperCase();
+      final String? name = device['name']?.toString();
+      if (address == null || address.isEmpty) continue;
+
+      batch.insert(
+        'Devices',
+        {'address': address, 'name': name ?? 'N/A'},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+  }
+
+  /// Lấy map địa chỉ MAC => tên đã lưu
+  Future<Map<String, String>> getDeviceNameMap() async {
+    final db = await database;
+    final rows = await db.query('Devices', columns: ['address', 'name']);
+    final Map<String, String> result = {};
+    for (final row in rows) {
+      final addr = row['address']?.toString();
+      final name = row['name']?.toString();
+      if (addr != null && name != null) {
+        result[addr.toUpperCase()] = name;
+      }
+    }
+    return result;
   }
 }

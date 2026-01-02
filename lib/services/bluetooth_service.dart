@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/bluetooth_device.dart';
+import 'database_helper.dart';
 
 class BluetoothService {
   static final BluetoothService _instance = BluetoothService._internal();
@@ -18,6 +19,8 @@ class BluetoothService {
   final ValueNotifier<String> status = ValueNotifier('Sẵn sàng');
   final ValueNotifier<double> currentWeight = ValueNotifier(0.0);
   final ValueNotifier<bool> isScanning = ValueNotifier(false);
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  Map<String, String> _knownDeviceNames = {};
   
   void setSimulatedWeight(double weight) {
     currentWeight.value = weight;
@@ -45,12 +48,17 @@ class BluetoothService {
 
     switch (eventType) {
       case 'scanResult':
+        final String rawAddress = event['address'] ?? '';
+        final String normalizedAddress = rawAddress.toUpperCase();
+        final String rawName = event['name'] ?? 'N/A';
+        final String displayName = _knownDeviceNames[normalizedAddress] ?? rawName;
+
         final device = BluetoothDevice(
-          name: event['name'] ?? 'N/A',
-          address: event['address'],
+          name: displayName,
+          address: rawAddress,
           rssi: int.tryParse(event['rssi'] ?? '0') ?? 0,
         );
-        _scannedDevices[device.address] = device;
+        _scannedDevices[normalizedAddress] = device;
         scanResults.value = _scannedDevices.values.toList();
         break;
 
@@ -62,7 +70,7 @@ class BluetoothService {
         _currentConnectionStatus = newStatus;
 
         if (newStatus == 'connected') {
-          final device = _scannedDevices[event['address']];
+          final device = _scannedDevices[(event['address'] as String).toUpperCase()];
           connectedDevice.value = device;
           lastConnectedDevice = device;
 
@@ -119,6 +127,7 @@ class BluetoothService {
   }
 
   Future<void> startScan() async {
+    await _loadKnownDevices();
     isScanning.value = true;
     status.value = 'Đang quét...';
     _scannedDevices.clear();
@@ -160,5 +169,15 @@ class BluetoothService {
   void dispose() {
     _eventSubscription?.cancel();
     _eventSubscription = null;
+  }
+
+  Future<void> refreshKnownDevices() => _loadKnownDevices();
+
+  Future<void> _loadKnownDevices() async {
+    try {
+      _knownDeviceNames = await _dbHelper.getDeviceNameMap();
+    } catch (e) {
+      if (kDebugMode) print('⚠️ Không thể tải danh sách cân: $e');
+    }
   }
 }

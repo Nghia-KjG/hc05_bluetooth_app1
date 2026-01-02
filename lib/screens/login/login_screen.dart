@@ -79,6 +79,9 @@ class _LoginScreenState extends State<LoginScreen> {
             
             // Đồng bộ danh sách người dùng từ /api/sync/persons (cho offline login)
             await _syncPersonsForOfflineLogin();
+
+            // Đồng bộ danh sách cân để map tên hiển thị theo MAC
+            await _syncDevicesForBluetoothLabel();
             
             // Chạy đồng bộ ngầm (không cần await)
             _runSync(); 
@@ -160,6 +163,16 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       // Không báo lỗi vì người dùng vẫn có thể đăng nhập online
       if (kDebugMode) print('⚠️ Lỗi tải danh sách người dùng: $e');
+    }
+  }
+
+  Future<void> _syncDevicesForBluetoothLabel() async {
+    try {
+      if (kDebugMode) print('⚙️ Đang tải danh sách cân để hiển thị tên...');
+      await SyncService().syncDevices();
+      if (kDebugMode) print('✅ Đã tải danh sách cân thành công');
+    } catch (e) {
+      if (kDebugMode) print('⚠️ Lỗi tải danh sách cân: $e');
     }
   }
 

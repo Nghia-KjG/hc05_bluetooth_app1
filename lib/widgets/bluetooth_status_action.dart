@@ -20,7 +20,7 @@ class BluetoothStatusAction extends StatelessWidget {
           return Row(
             children: [
               Text(
-                'Cân: ${device.name}',
+                ' ${device.name}',
                 style: const TextStyle(
                   color: Colors.green,
                   fontWeight: FontWeight.w500,

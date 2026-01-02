@@ -75,6 +75,58 @@ class SyncService {
     }
   }
 
+  /// Đồng bộ danh sách cân để hiển thị tên thân thiện theo MAC
+  Future<void> syncDevices() async {
+    if (kDebugMode) {
+      print('🔄 Đang tải danh sách cân từ /api/sync/devices...');
+    }
+
+    try {
+      final url = Uri.parse('$_apiBaseUrl/api/sync/devices');
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        throw Exception('API Sync Devices thất bại: ${response.statusCode}');
+      }
+
+      final data = json.decode(response.body);
+      List<Map<String, dynamic>> devices = [];
+
+      if (data is List) {
+        devices = List<Map<String, dynamic>>.from(
+          data.map((item) => {
+            'address': item['Address']?.toString().toUpperCase(),
+            'name': item['Name']?.toString(),
+          }),
+        );
+      } else if (data is Map && data['data'] is List) {
+        devices = List<Map<String, dynamic>>.from(
+          (data['data'] as List).map((item) => {
+            'address': item['Address']?.toString().toUpperCase(),
+            'name': item['Name']?.toString(),
+          }),
+        );
+      }
+
+      devices.removeWhere((d) => (d['address'] as String?)?.isEmpty ?? true);
+
+      if (devices.isNotEmpty) {
+        await _dbHelper.updateDevices(devices);
+        if (kDebugMode) {
+          print('✅ Đã lưu ${devices.length} cân vào cache');
+        }
+      } else if (kDebugMode) {
+        print('⚠️ Không tìm thấy dữ liệu cân trong response');
+      }
+
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Lỗi đồng bộ devices: $e');
+      }
+      throw Exception('Lỗi đồng bộ devices: $e');
+    }
+  }
+
   Future<void> syncAllData() async {
     if (kDebugMode) {
       print('🔄 Bắt đầu đồng bộ TẤT CẢ dữ liệu chưa cân...');
