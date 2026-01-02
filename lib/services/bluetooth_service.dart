@@ -73,7 +73,10 @@ class BluetoothService {
         } else if (newStatus == 'disconnected') {
           // Chờ 10 giây để tránh ngắt giả
           Future.delayed(const Duration(seconds: 10), () {
-            if (connectedDevice.value?.address == event['address']) return;
+            // Nếu hiện tại kết nối tới một thiết bị khác, bỏ qua
+            if (connectedDevice.value?.address != event['address']) return;
+            // Thực sự ngắt kết nối: xóa trạng thái kết nối
+            if (kDebugMode) print('ℹ️ Mất kết nối với cân ${event['address']}');
             connectedDevice.value = null;
             _currentConnectionStatus = 'disconnected';
           });

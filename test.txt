@@ -1,18 +1,2 @@
-'mgso': {
-    'OVNO': 'PD202510000003'
-    'package' : 1,
-    'UserID': 'Nguyen Van A',
-    'thoiGianCan': '22:00 28/10/2025',
-    'khoiLuongMe': 80.0,
-    'khoiLuongSauCan': ,
-    'loai': '',
-  },
-
-
-  'PD202510000003': {
-    'FormulaF1': 'Phôi keo C-VIP',
-    'tongKhoiLuong' : 2280.0,
-    'Batch' : 20,
-    'soMay': 'Máy 1',
-    'Memo' : 'ZQ356, BR9000'
-  },
+nếu có đổi địa chỉ server(backend) thì phải vào .env và vào đây setting lại 
+android\app\src\main\res\xml\network_security_config.xml
