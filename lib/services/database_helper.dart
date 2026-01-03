@@ -228,7 +228,7 @@ class DatabaseHelper {
     return result.isNotEmpty;
   }
 
-  /// Cập nhật bảng Devices từ API /api/sync/devices
+  /// Cập nhật bảng Devices từ API /api/devices
   Future<void> updateDevices(List<Map<String, dynamic>> devices) async {
     final db = await database;
     final batch = db.batch();

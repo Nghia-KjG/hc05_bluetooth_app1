@@ -78,11 +78,11 @@ class SyncService {
   /// Đồng bộ danh sách cân để hiển thị tên thân thiện theo MAC
   Future<void> syncDevices() async {
     if (kDebugMode) {
-      print('🔄 Đang tải danh sách cân từ /api/sync/devices...');
+      print('🔄 Đang tải danh sách cân từ /api/devices...');
     }
 
     try {
-      final url = Uri.parse('$_apiBaseUrl/api/sync/devices');
+      final url = Uri.parse('$_apiBaseUrl/api/devices');
       final response = await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
