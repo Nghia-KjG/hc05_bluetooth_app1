@@ -24,6 +24,7 @@ class ActionBar extends StatelessWidget {
         child: DropdownButton<double>(
           value: selectedPercentage,
           items: const [
+            DropdownMenuItem(value: 0.1, child: Text('100g')),
             DropdownMenuItem(value: 1.0, child: Text('1.0%')),
             DropdownMenuItem(value: 2.0, child: Text('2.0%')),
             DropdownMenuItem(value: 5.0, child: Text('5.0%')),

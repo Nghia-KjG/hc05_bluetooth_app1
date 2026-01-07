@@ -79,7 +79,11 @@ class WeighingStationController with ChangeNotifier {
       _minWeight = 0.0;
       _maxWeight = 0.0;
     } else {
-      final deviation = _standardWeight * (_selectedPercentage / 100.0);
+      // Nếu chọn 0.1 (100g option), tính cố định ±0.1kg
+      // Nếu chọn các giá trị khác, tính theo phần trăm
+      final deviation = _selectedPercentage == 0.1
+          ? 0.1 // Cố định 100g (0.1kg)
+          : _standardWeight * (_selectedPercentage / 100.0);
       _minWeight = _standardWeight - deviation;
       _maxWeight = _standardWeight + deviation;
     }
