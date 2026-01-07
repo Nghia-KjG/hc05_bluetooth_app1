@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: Text(
-                'Weighing Station App',
+                'Weighing Station App - Version 0.0.0',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[800],

@@ -22,7 +22,6 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
   bool _isSyncing = false;
   List<Map<String, dynamic>> _pendingRecords = [];
   List<Map<String, dynamic>> _failedRecords = [];
-  List<Map<String, dynamic>> _successRecords = [];
 
   @override
   void initState() {
@@ -35,12 +34,10 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
     setState(() => _isLoading = true);
     final data = await _dbHelper.getPendingSyncRecords();
     final failed = await _dbHelper.getFailedSyncRecords();
-    final success = await _dbHelper.getLast10SuccessfulRecords();
 
     setState(() {
       _pendingRecords = data;
       _failedRecords = failed;
-      _successRecords = success;
       _isLoading = false;
     });
   }
@@ -64,8 +61,43 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
       return; // Dừng lại, không chạy sync
     }
     
+    // Hiển thị dialog loading
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Đang đồng bộ dữ liệu...', style: TextStyle(fontSize: 16)),
+                SizedBox(height: 8),
+                Text('Vui lòng đợi', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ),
+          );
+        },
+      );
+    }
+    
     try {
-      await _syncService.syncHistoryQueue(); // Gọi hàm sync
+      // Bước 1: Tải dữ liệu mới từ server (như lúc đăng nhập online)
+      if (kDebugMode) print('📥 Đang tải dữ liệu mới từ server...');
+      await _syncService.syncPersons(); // Đồng bộ danh sách người dùng
+      await _syncService.syncDevices(); // Đồng bộ danh sách cân
+      await _syncService.syncAllData(); // Đồng bộ dữ liệu chưa cân
+      
+      // Bước 2: Đẩy dữ liệu pending lên server
+      if (kDebugMode) print('📤 Đang đẩy dữ liệu pending lên server...');
+      await _syncService.syncHistoryQueue();
+      
+      // Đóng dialog loading
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
       
       if (mounted) {
         NotificationService().showToast(
@@ -83,6 +115,11 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
         print('--- LỖI ĐỒNG BỘ (PendingSyncScreen) ---');
         print(e);
         print('------------------------------------');
+      }
+
+      // Đóng dialog loading
+      if (mounted) {
+        Navigator.of(context).pop();
       }
 
       // Hiển thị thông báo thân thiện cho người dùng
@@ -133,8 +170,8 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
   }
 
   Widget _buildBody() {
-    // Nếu cả 3 danh sách trống
-    if (_pendingRecords.isEmpty && _failedRecords.isEmpty && _successRecords.isEmpty) {
+    // Nếu cả 2 danh sách trống
+    if (_pendingRecords.isEmpty && _failedRecords.isEmpty) {
       return const Center(
         child: Text(
           'Không có dữ liệu nào chờ đồng bộ.',
@@ -263,30 +300,6 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                     ),
                   ],
                 ),
-              ),
-            );
-          }),
-        ],
-
-        // Success section (last 10)
-        if (_successRecords.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text('Mã đã đồng bộ thành công', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          ),
-          ..._successRecords.map((record) {
-            final bool isNhap = (record['loai'] ?? 'nhap') == 'nhap';
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              elevation: 1,
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: isNhap ? Colors.green[50] : Colors.blue[50],
-                  child: Icon(isNhap ? Icons.check_circle : Icons.check_circle, color: isNhap ? Colors.green[700] : Colors.blue[700]),
-                ),
-                title: Text('${record['tenPhoiKeo'] ?? 'N/A'} (Lô: ${record['soLo']})', style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('Mã: ${record['maCode']}\nLúc: ${_formatTime(record['thoiGianCan'] ?? '')}'),
-                trailing: Text('${(record['khoiLuongCan'] as num).toStringAsFixed(3)} kg', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             );
           }),

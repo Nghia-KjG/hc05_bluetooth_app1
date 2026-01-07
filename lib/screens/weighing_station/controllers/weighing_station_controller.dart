@@ -306,6 +306,14 @@ class WeighingStationController with ChangeNotifier {
 }
 
   // --- HOÀN TẤT CÂN ---
+  /// Hoàn tất phiếu cân (lưu trọng lượng thực tế).
+  /// - Kiểm tra trọng lượng có nằm trong khoảng min-max không.
+  /// - Gửi dữ liệu lên server nếu có mạng; nếu mất mạng thì lưu vào queue offline.
+  /// - Cập nhật cache local VmlWorkS và HistoryQueue (offline).
+  /// - Trả về true nếu thành công, false nếu lỗi.
+  /// 
+  /// Thêm thông báo thành công với tên phôi keo, số lô và khối lượng cân.
+  /// Clear ô input scan khi hoàn tất thành công (qua callback onAutoComplete).
   Future<bool> completeCurrentWeighing(BuildContext context, double currentWeight) async {
     // 1. Kiểm tra cơ bản (Giữ nguyên)
     if (_records.isEmpty) {
