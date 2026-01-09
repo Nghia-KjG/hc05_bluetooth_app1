@@ -7,6 +7,7 @@ class CurrentWeightCard extends StatefulWidget {
   final double minWeight;
   final double maxWeight;
   final double khoiLuongMe;
+  final bool hasScannedCode;
 
   const CurrentWeightCard({
     super.key,
@@ -14,6 +15,7 @@ class CurrentWeightCard extends StatefulWidget {
     required this.minWeight,
     required this.maxWeight,
     required this.khoiLuongMe,
+    required this.hasScannedCode,
   });
 
   @override
@@ -75,20 +77,20 @@ class CurrentWeightCard extends StatefulWidget {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          currentWeight.toStringAsFixed(3),
-                          style: const TextStyle(
+                          widget.hasScannedCode ? currentWeight.toStringAsFixed(3) : '---',
+                          style: TextStyle(
                             fontSize: 60,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E88E5),
+                            color: widget.hasScannedCode ? const Color(0xFF1E88E5) : Colors.grey,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Kg',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E88E5),
+                            color: widget.hasScannedCode ? const Color(0xFF1E88E5) : Colors.grey,
                           ),
                         ),
                       ],

@@ -234,8 +234,8 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
   // Xác định màu nền dựa trên loại cân
     final bool isNhap = _controller.selectedWeighingType == WeighingType.nhap;
     final Color pageBackgroundColor = isNhap
-        ? const Color.fromARGB(134, 74, 207, 140)  // Xanh lá nhạt cho Nhập
-        : const Color.fromARGB(255, 173, 207, 241); // Xanh dương nhạt cho Xuất
+        ? const Color.fromARGB(133, 219, 158, 43)  // Xanh lá nhạt cho Nhập
+        : const Color.fromARGB(255, 112, 128, 144); // Xanh dương nhạt cho Xuất
 
     return Container(
       color: pageBackgroundColor, // Nền toàn trang
@@ -271,6 +271,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                         minWeight: _controller.minWeight,
                         maxWeight: _controller.maxWeight,
                         khoiLuongMe: _controller.khoiLuongMe,
+                        hasScannedCode: _scanTextController.text.isNotEmpty,
                       ),
                     ),
                     const SizedBox(width: 24),
