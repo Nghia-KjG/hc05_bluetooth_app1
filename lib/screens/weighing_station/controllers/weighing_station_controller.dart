@@ -61,6 +61,14 @@ class WeighingStationController with ChangeNotifier {
   int get activeXWeighed => _activeXWeighed;
   int get activeYTotal => _activeYTotal;
 
+  // Trọng lượng đã cân nhập/xuất của mã hiện tại
+  double _weighedNhapAmount = 0.0;
+  double _weighedXuatAmount = 0.0;
+  double get weighedNhapAmount => _weighedNhapAmount;
+  double get weighedXuatAmount => _weighedXuatAmount;
+  // Trọng lượng còn có thể xuất = weighedNhapAmount - weighedXuatAmount
+  double get remainingXuatAmount => _weighedNhapAmount - _weighedXuatAmount;
+
   WeighingType _selectedWeighingType = WeighingType.nhap;
   WeighingType get selectedWeighingType => _selectedWeighingType;
 
@@ -79,7 +87,20 @@ class WeighingStationController with ChangeNotifier {
     if (_standardWeight == 0) {
       _minWeight = 0.0;
       _maxWeight = 0.0;
+    } else if (_selectedWeighingType == WeighingType.xuat) {
+      // CÂN XUẤT: Min/Max dựa trên trọng lượng còn có thể xuất
+      final double remaining = _weighedNhapAmount - _weighedXuatAmount;
+      if (remaining <= 0) {
+        _minWeight = 0.0;
+        _maxWeight = 0.0;
+      } else {
+        // Max = trọng lượng còn có thể xuất
+        // Min = 0 (hoặc có thể đặt giá trị tối thiểu nếu cần)
+        _minWeight = 0.001; // Tối thiểu 1g
+        _maxWeight = remaining;
+      }
     } else {
+      // CÂN NHẬP: Tính theo phần trăm như cũ
       // Nếu chọn 0.1 (100g option), tính cố định ±0.1kg
       // Nếu chọn các giá trị khác, tính theo phần trăm
       final deviation = _selectedPercentage == 0.1
@@ -175,11 +196,14 @@ class WeighingStationController with ChangeNotifier {
         final bool flagNhap = data['isNhapWeighed'] == true;
         final String loaiFromServer = (data['loai'] ?? '').toString().toLowerCase().trim();
         isNhapWeighedFromServer = flagNhap || (loaiFromServer == 'nhap');
-        final bool isXuatWeighed = data['isXuatWeighed'] == true || (loaiFromServer == 'xuat');
-
-        // Kiểm tra xem mã đã cân xuất chưa (không cho phép cân lại nếu cân xuất rồi)
-        if (isXuatWeighed) {
-          throw WeighingException('Mã này đã được CÂN XUẤT (trên hệ thống). Không thể cân lại!');
+        
+        // Lấy trọng lượng đã cân nhập/xuất từ API
+        _weighedNhapAmount = (data['weighedNhapAmount'] as num? ?? 0.0).toDouble();
+        _weighedXuatAmount = (data['weighedXuatAmount'] as num? ?? 0.0).toDouble();
+        
+        // Kiểm tra xem đã xuất hết chưa (tổng xuất >= nhập)
+        if (_weighedNhapAmount > 0 && _weighedXuatAmount >= _weighedNhapAmount) {
+          throw WeighingException('Mã này đã XUẤT HẾT (${_weighedXuatAmount.toStringAsFixed(3)}/${_weighedNhapAmount.toStringAsFixed(3)} kg). Không thể cân thêm!');
         }
 
         // Lưu cache
@@ -232,10 +256,35 @@ class WeighingStationController with ChangeNotifier {
       isNhapWeighedFromServer = hasWeighedNhapInCache || hasWeighedNhapInQueue;
       // --- KẾT THÚC SỬA LỖI ---
 
+      // 4. Tính tổng trọng lượng đã cân nhập/xuất từ local
+      // Lấy từ HistoryQueue (chờ sync)
+      final nhapInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [code, 'nhap']);
+      final xuatInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [code, 'xuat']);
+      
+      double localNhapAmount = 0.0;
+      double localXuatAmount = 0.0;
+      
+      // Cộng từ HistoryQueue
+      for (var row in nhapInQueue) {
+        localNhapAmount += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
+      }
+      for (var row in xuatInQueue) {
+        localXuatAmount += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
+      }
+      
+      // Lấy từ cache VmlWorkS nếu có (đã sync)
+      if (realQtyFromCache != null && loaiFromCache == 'nhap') {
+        localNhapAmount += (realQtyFromCache as num).toDouble();
+      }
+      
+      _weighedNhapAmount = localNhapAmount;
+      _weighedXuatAmount = localXuatAmount;
+
       // Ghi lại dạng normalized để debug
       if (kDebugMode) {
         print('🔍 loaiFromCache="$loaiFromCache" (hasWeighedNhapInCache=$hasWeighedNhapInCache)');
         print('🔍 existingNhapInQueue (Chờ sync): ${existingNhapInQueue.length} (hasWeighedNhapInQueue=$hasWeighedNhapInQueue)');
+        print('🔍 Offline weighedNhap=$_weighedNhapAmount, weighedXuat=$_weighedXuatAmount');
       }
     }
 
@@ -431,14 +480,30 @@ class WeighingStationController with ChangeNotifier {
             throw WeighingException('Lỗi: Mã này CHƯA CÂN NHẬP (offline).');
           }
 
-          // 2) Ngăn chặn cân xuất trùng (đã có xuat chờ/đã lưu)
-          final existingXuatInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [currentRecord.maCode, 'xuat']);
-          if (existingXuatInQueue.isNotEmpty) {
-            throw WeighingException('Mã này đã được cân xuất (đang chờ đồng bộ).');
+          // 2) Kiểm tra tổng xuất + lần này <= tổng nhập
+          // Tính tổng đã xuất từ HistoryQueue
+          final xuatInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [currentRecord.maCode, 'xuat']);
+          double totalXuatInQueue = 0.0;
+          for (var row in xuatInQueue) {
+            totalXuatInQueue += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
           }
-          final existingXuatInCache = await db.query('VmlWorkS', where: 'maCode = ? AND loai = ? AND realQty IS NOT NULL', whereArgs: [currentRecord.maCode, 'xuat']);
-          if (existingXuatInCache.isNotEmpty) {
-            throw WeighingException('Mã này đã được cân xuất (đã đồng bộ).');
+          
+          // Tổng nhập
+          double totalNhap = 0.0;
+          for (var row in existingNhapInQueue) {
+            totalNhap += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
+          }
+          for (var row in existingNhapInCache) {
+            final realQty = row['realQty'];
+            if (realQty != null) {
+              totalNhap += (realQty as num).toDouble();
+            }
+          }
+          
+          // Kiểm tra: tổng xuất hiện tại + lần này <= tổng nhập
+          final newTotalXuat = totalXuatInQueue + currentWeight;
+          if (newTotalXuat > totalNhap) {
+            throw WeighingException('Lỗi: Tổng xuất (${newTotalXuat.toStringAsFixed(3)} kg) vượt quá tổng nhập (${totalNhap.toStringAsFixed(3)} kg)!');
           }
         }
         
@@ -465,6 +530,12 @@ class WeighingStationController with ChangeNotifier {
       currentRecord.mixTime = thoiGianCan;
       currentRecord.realQty = currentWeight;
       currentRecord.loai = loaiCan;
+      
+      // Cập nhật tổng xuất nếu là cân xuất
+      if (loaiCan == 'xuat') {
+        _weighedXuatAmount += currentWeight;
+      }
+      
       _standardWeight = 0.0;
       _calculateMinMax();
 

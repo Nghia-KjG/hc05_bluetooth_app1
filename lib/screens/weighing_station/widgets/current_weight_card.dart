@@ -8,6 +8,9 @@ class CurrentWeightCard extends StatefulWidget {
   final double maxWeight;
   final double khoiLuongMe;
   final bool hasScannedCode;
+  final bool isXuat;
+  final double weighedNhapAmount;
+  final double weighedXuatAmount;
 
   const CurrentWeightCard({
     super.key,
@@ -16,6 +19,9 @@ class CurrentWeightCard extends StatefulWidget {
     required this.maxWeight,
     required this.khoiLuongMe,
     required this.hasScannedCode,
+    this.isXuat = false,
+    this.weighedNhapAmount = 0.0,
+    this.weighedXuatAmount = 0.0,
   });
 
   @override
@@ -126,6 +132,55 @@ class CurrentWeightCard extends StatefulWidget {
                 //const SizedBox(height: 12),
                 const Divider(),
                 //const SizedBox(height: 12),
+                
+                // Hiển thị thông tin cân xuất nếu đang ở chế độ xuất
+                if (widget.isXuat && widget.weighedNhapAmount > 0) ...[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Đã nhập:', style: TextStyle(fontSize: 16, color: Colors.green)),
+                            Text(
+                              '${widget.weighedNhapAmount.toStringAsFixed(3)} kg',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Đã xuất:', style: TextStyle(fontSize: 16, color: Colors.orange)),
+                            Text(
+                              '${widget.weighedXuatAmount.toStringAsFixed(3)} kg',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Còn lại:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                            Text(
+                              '${(widget.weighedNhapAmount - widget.weighedXuatAmount).toStringAsFixed(3)} kg',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 
                 // MIN / MAX
                 Row(
