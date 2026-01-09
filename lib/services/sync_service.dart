@@ -250,6 +250,7 @@ class SyncService {
             'khoiLuongCan': record['khoiLuongCan'],
             'thoiGianCan': record['thoiGianCan'],
             'loai': record['loai'],
+            'WUserID': record['WUserID'],
           }),
         ).timeout(const Duration(seconds: 10));
 
@@ -276,6 +277,7 @@ class SyncService {
             'khoiLuongCan': record['khoiLuongCan'],
             'thoiGianCan': record['thoiGianCan'],
             'loai': record['loai'],
+            'WUserID': record['WUserID'],
             'errorMessage': errMsg,
             'failedAt': DateTime.now().toIso8601String(),
           });
@@ -323,6 +325,7 @@ class SyncService {
           'khoiLuongCan': failedRecord['khoiLuongCan'],
           'thoiGianCan': failedRecord['thoiGianCan'],
           'loai': failedRecord['loai'],
+          'WUserID': failedRecord['WUserID'],
         }),
       ).timeout(const Duration(seconds: 10));
 

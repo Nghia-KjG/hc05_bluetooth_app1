@@ -14,6 +14,7 @@ import '../../../services/server_status_service.dart';
 import '../../../services/weight_stability_monitor.dart';
 import '../../../services/audio_service.dart';
 import '../../../services/settings_service.dart';
+import '../../../services/auth_service.dart';
 
 enum WeighingType { nhap, xuat }
 
@@ -347,7 +348,8 @@ class WeighingStationController with ChangeNotifier {
     final thoiGianString = DateFormat('yyyy-MM-dd HH:mm:ss').format(thoiGianCan);
     final db = await _dbHelper.database;
 
-    // 3. Kiểm tra trạng thái mạng
+    // 3. Kiểm tra trạng thái mạng (gọi checkServer để kiểm tra ngay lập tức)
+    await _serverStatus.checkServer();
     final bool isServerConnected = _serverStatus.isServerConnected;
 
     try {
@@ -360,6 +362,7 @@ class WeighingStationController with ChangeNotifier {
           'khoiLuongCan': currentWeight,
           'thoiGianCan': thoiGianString,
           'loai': loaiCan,
+          'WUserID': AuthService().mUserID,
         };
         
         final url = Uri.parse('$_apiBaseUrl/api/complete');
@@ -446,6 +449,7 @@ class WeighingStationController with ChangeNotifier {
             'khoiLuongCan': currentWeight,
             'thoiGianCan': thoiGianString,
             'loai': loaiCan,
+            'WUserID': AuthService().mUserID,
           });
           await txn.update(
             'VmlWorkS',
