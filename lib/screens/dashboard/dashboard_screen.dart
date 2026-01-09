@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/language_service.dart';
 import '../../widgets/main_app_bar.dart';
 import 'widgets/hourly_weighing_chart.dart';
 import 'widgets/inventory_pie_chart.dart';
@@ -16,6 +17,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final BluetoothService _bluetoothService = BluetoothService();
+  final LanguageService _languageService = LanguageService();
 
   // --- 2. Create Controller ---
   late final DashboardController _controller;
@@ -50,17 +52,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: MainAppBar(
-        title: 'LƯU TRÌNH CÂN KEO BÁN THÀNH PHẨM',
+        title: _languageService.translate('weighing_program'),
         bluetoothService: _bluetoothService,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          tooltip: 'Quay lại trang chủ',
+          tooltip: _languageService.translate('back_to_home'),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       // --- 5. Use AnimatedBuilder to listen ---
       body: AnimatedBuilder(
-          animation: _controller,
+          animation: Listenable.merge([_controller, _languageService]),
           builder: (context, child) {
             return Container(
               padding: const EdgeInsets.all(24.0),
@@ -69,9 +71,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        'Dashboard - Tổng Quan',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      Text(
+                        _languageService.translate('dashboard_title'),
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -95,9 +97,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
-                                      'Khối Lượng Cân Theo Ca',
-                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                    Text(
+                                      _languageService.translate('weight_by_shift'),
+                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                                     ),
                                     DatePickerInput(
                                       selectedDate: _controller.selectedDate,

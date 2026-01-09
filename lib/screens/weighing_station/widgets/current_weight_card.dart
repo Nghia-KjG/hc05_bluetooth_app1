@@ -1,6 +1,7 @@
 //import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../services/bluetooth_service.dart';
+import '../../../services/language_service.dart';
 
 class CurrentWeightCard extends StatefulWidget {
   final BluetoothService bluetoothService;
@@ -67,8 +68,8 @@ class CurrentWeightCard extends StatefulWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Trọng lượng hiện tại',
-                    style: TextStyle(
+                Text(LanguageService().translate('current_weight'),
+                    style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.black54)),
@@ -147,7 +148,7 @@ class CurrentWeightCard extends StatefulWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Đã nhập:', style: TextStyle(fontSize: 16, color: Colors.green)),
+                            Text(LanguageService().translate('weighed_in'), style: const TextStyle(fontSize: 16, color: Colors.green)),
                             Text(
                               '${widget.weighedNhapAmount.toStringAsFixed(3)} kg',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
@@ -158,7 +159,7 @@ class CurrentWeightCard extends StatefulWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Đã xuất:', style: TextStyle(fontSize: 16, color: Colors.orange)),
+                            Text(LanguageService().translate('weighed_out'), style: const TextStyle(fontSize: 16, color: Colors.orange)),
                             Text(
                               '${widget.weighedXuatAmount.toStringAsFixed(3)} kg',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
@@ -169,7 +170,7 @@ class CurrentWeightCard extends StatefulWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Còn lại:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                            Text(LanguageService().translate('remaining'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
                             Text(
                               '${(widget.weighedNhapAmount - widget.weighedXuatAmount).toStringAsFixed(3)} kg',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
@@ -182,50 +183,52 @@ class CurrentWeightCard extends StatefulWidget {
                   const SizedBox(height: 12),
                 ],
                 
-                // MIN / MAX
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('MIN', style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.bold)),
-                        Text(
-                          '${widget.minWeight.toStringAsFixed(3)} kg',
-                          style: const TextStyle(fontSize: 18, color: Colors.green, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('MAX', style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.bold)),
-                        Text(
-                          '${widget.maxWeight.toStringAsFixed(3)} kg',
-                          style: const TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Chênh lệch
-                Text(
-                  'Chênh lệch: $deviationString',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
+                // MIN / MAX (Ẩn khi cân xuất)
+                if (!widget.isXuat) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('MIN', style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.bold)),
+                          Text(
+                            '${widget.minWeight.toStringAsFixed(3)} kg',
+                            style: const TextStyle(fontSize: 18, color: Colors.green, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('MAX', style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.bold)),
+                          Text(
+                            '${widget.maxWeight.toStringAsFixed(3)} kg',
+                            style: const TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 4),
-                LinearProgressIndicator(
-                  value: 1.0,
-                  color: statusColor,
-                  backgroundColor: statusColor.withValues(alpha: 0.5),
-                ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Chênh lệch
+                  Text(
+                    '${LanguageService().translate('deviation')}: $deviationString',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  LinearProgressIndicator(
+                    value: 1.0,
+                    color: statusColor,
+                    backgroundColor: statusColor.withValues(alpha: 0.5),
+                  ),
+                ],
               ],
             );
           },

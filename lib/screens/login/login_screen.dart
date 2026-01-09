@@ -13,6 +13,7 @@ import '../../services/notification_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_helper.dart';
 import '../../services/sync_service.dart';
+import '../../services/language_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (soThe.isEmpty) {
       // (Báo lỗi "Vui lòng nhập số thẻ"...)
       NotificationService().showToast(
-        context: context, message: 'Vui lòng nhập số thẻ.', type: ToastType.info,
+        context: context, message: LanguageService().translate('please_enter_card_number'), type: ToastType.info,
       );
       setState(() => _isLoading = false);
       return;
@@ -249,75 +250,119 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginForm() {
-    return Container(
-      width: 400,
-      padding: const EdgeInsets.all(32.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Đăng nhập',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'Số thẻ',
-            style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _soTheController,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-            ),
-          ),
-          const SizedBox(height: 32),
-          DropdownButtonHideUnderline(
-            child: DropdownButtonFormField<String>(
-              initialValue: _selectedFactory,
-              icon: const Icon(Icons.factory_outlined),
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+    return AnimatedBuilder(
+      animation: LanguageService(),
+      builder: (context, child) {
+        final lang = LanguageService();
+        return Container(
+          width: 400,
+          padding: const EdgeInsets.all(32.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
               ),
-              items: ['LHG', 'LYV', 'LVL', 'LAZ', 'LZS', 'LYM']
-                  .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedFactory = v ?? 'LHG'),
-            ),
+            ],
           ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: _isLoading ? null : _handleLogin,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-            ),
-            child: _isLoading
-                ? const CircularProgressIndicator(color: Colors.white)
-                : const Text('Đăng nhập', style: TextStyle(fontSize: 16)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                lang.translate('login_title'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                lang.translate('card_number'),
+                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _soTheController,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                onSubmitted: (_) => _isLoading ? null : _handleLogin(),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                lang.translate('factory'),
+                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonHideUnderline(
+                child: DropdownButtonFormField<String>(
+                  value: _selectedFactory,
+                  icon: const Icon(Icons.factory_outlined),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  items: ['LHG', 'LYV', 'LVL', 'LAZ', 'LZS', 'LYM']
+                      .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedFactory = v ?? 'LHG'),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                lang.translate('language'),
+                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonHideUnderline(
+                child: DropdownButtonFormField<String>(
+                  value: lang.currentLanguage,
+                  icon: const Icon(Icons.language),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'vi',
+                      child: Text(lang.translate('vietnamese')),
+                    ),
+                    DropdownMenuItem(
+                      value: 'en',
+                      child: Text(lang.translate('english')),
+                    ),
+                  ],
+                  onChanged: (v) async {
+                    if (v != null) {
+                      await lang.setLanguage(v);
+                      setState(() {});
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(lang.translate('login_button'), style: const TextStyle(fontSize: 16)),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

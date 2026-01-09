@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/bluetooth_device.dart';
 import 'database_helper.dart';
+import 'language_service.dart';
 
 class BluetoothService {
   static final BluetoothService _instance = BluetoothService._internal();
@@ -16,10 +17,11 @@ class BluetoothService {
 
   final ValueNotifier<List<BluetoothDevice>> scanResults = ValueNotifier([]);
   final ValueNotifier<BluetoothDevice?> connectedDevice = ValueNotifier(null);
-  final ValueNotifier<String> status = ValueNotifier('Sẵn sàng');
+  final ValueNotifier<String> status = ValueNotifier('');
   final ValueNotifier<double> currentWeight = ValueNotifier(0.0);
   final ValueNotifier<bool> isScanning = ValueNotifier(false);
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final LanguageService _languageService = LanguageService();
   Map<String, String> _knownDeviceNames = {};
   
   void setSimulatedWeight(double weight) {
@@ -39,6 +41,7 @@ class BluetoothService {
 
   void initialize() {
     if (_eventSubscription != null) return;
+    status.value = _languageService.translate('ready');
     _eventSubscription =
         _eventChannel.receiveBroadcastStream().listen(_onEvent, onError: _onError);
   }
@@ -123,13 +126,13 @@ class BluetoothService {
   }
 
   void _onError(dynamic error) {
-    status.value = 'Lỗi nhận sự kiện: ${error.message}';
+    status.value = '${_languageService.translate('event_error')}: ${error.message}';
   }
 
   Future<void> startScan() async {
     await _loadKnownDevices();
     isScanning.value = true;
-    status.value = 'Đang quét...';
+    status.value = _languageService.translate('scanning');
     _scannedDevices.clear();
     scanResults.value = [];
     await _methodChannel.invokeMethod('startScan');
@@ -137,12 +140,12 @@ class BluetoothService {
 
   Future<void> stopScan() async {
     isScanning.value = false;
-    status.value = 'Đã dừng quét.';
+    status.value = _languageService.translate('stopped_scan');
     await _methodChannel.invokeMethod('stopScan');
   }
 
   Future<void> connectToDevice(BluetoothDevice device) async {
-    status.value = 'Đang kết nối tới ${device.name}...';
+    status.value = '${_languageService.translate('connecting_to')} ${device.name}...';
     await _methodChannel.invokeMethod('connect', {'address': device.address});
   }
 
@@ -152,7 +155,7 @@ class BluetoothService {
         'address': connectedDevice.value!.address,
       });
       connectedDevice.value = null;
-      status.value = 'Đã ngắt kết nối.';
+      status.value = _languageService.translate('disconnected');
       _currentConnectionStatus = 'disconnected';
     }
   }

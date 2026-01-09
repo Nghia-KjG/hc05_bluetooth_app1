@@ -8,8 +8,9 @@ import 'screens/home/home_screen.dart';
 import 'screens/history/history_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/splash/splash_screen.dart';
-import 'package:hc05_bluetooth_app/screens/pending_sync/pending_sync_screen.dart';
+import 'screens/pending_sync/pending_sync_screen.dart';
 import 'services/settings_service.dart';
+import 'services/language_service.dart';
 import 'screens/settings/settings_screen.dart';
 //import 'package:path_provider/path_provider.dart';
 //import 'package:path/path.dart';
@@ -27,6 +28,7 @@ Future<void> main() async {
   }
   */
   await SettingsService().init();
+  await LanguageService().initialize();
   runApp(const MyApp());
 }
 

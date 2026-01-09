@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../../services/bluetooth_service.dart';
 import '../../widgets/main_app_bar.dart';
 import '../../services/notification_service.dart';
-import '../../services/server_status_service.dart'; // 👈 Thêm dòng này
+import '../../services/server_status_service.dart';
+import '../../services/language_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,96 +33,102 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // 1. Tái sử dụng MainAppBar
-      appBar: MainAppBar(
-        title: 'LƯU TRÌNH CÂN KEO BÁN THÀNH PHẨM',
-        bluetoothService: _bluetoothService,
-        // Không truyền 'leading', AppBar sẽ không có nút back
-      ),
-      
-      // 2. Màu nền xanh nhạt
-      backgroundColor: const Color(0xFFBCE0F5), // Màu xanh từ ảnh
-      
-      body: Column(
-        children: [
-          Expanded(
-            child: Center(
-              // 3. Hàng chứa 3 nút chức năng
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildMenuButton(
-                    context: context,
-                    iconPath: 'lib/assets/images/weight-scale.png', 
-                    label: 'Trạm cân',
-                    onPressed: () async {
-                      if (_bluetoothService.connectedDevice.value != null) {
-                        Navigator.of(context).pushNamed('/weighing_station');
-                      } else {
-                        NotificationService().showToast(
-                          context: context,
-                          message: 'Chưa kết nối với cân! Đang chuyển đến trang kết nối...',
-                          type: ToastType.info,
-                        );
+    return AnimatedBuilder(
+      animation: LanguageService(),
+      builder: (context, child) {
+        final lang = LanguageService();
+        return Scaffold(
+          // 1. Tái sử dụng MainAppBar
+          appBar: MainAppBar(
+            title: lang.translate('weighing_program'),
+            bluetoothService: _bluetoothService,
+            // Không truyền 'leading', AppBar sẽ không có nút back
+          ),
+          
+          // 2. Màu nền xanh nhạt
+          backgroundColor: const Color(0xFFBCE0F5), // Màu xanh từ ảnh
+          
+          body: Column(
+            children: [
+              Expanded(
+                child: Center(
+                  // 3. Hàng chứa 3 nút chức năng
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildMenuButton(
+                        context: context,
+                        iconPath: 'lib/assets/images/weight-scale.png', 
+                        label: lang.translate('weighing_station'),
+                        onPressed: () async {
+                          if (_bluetoothService.connectedDevice.value != null) {
+                            Navigator.of(context).pushNamed('/weighing_station');
+                          } else {
+                            NotificationService().showToast(
+                              context: context,
+                              message: lang.translate('not_connected'),
+                              type: ToastType.info,
+                            );
 
-                        await Future.delayed(const Duration(seconds: 3));
+                            await Future.delayed(const Duration(seconds: 3));
 
-                        if (context.mounted) {
-                          Navigator.of(context).pushNamed('/scan');
-                        }
-                      }
-                    },
-                  ),
-                  _buildMenuButton(
-                    context: context,
-                    iconPath: 'lib/assets/images/dashboard.png',
-                    label: 'Dash Board',
-                    onPressed: () {
-                      Navigator.of(context).pushNamed('/dashboard');
-                    },
-                  ),
-                  _buildMenuButton(
-                    context: context,
-                    iconPath: 'lib/assets/images/history.png',
-                    label: 'Lịch sử cân',
-                    onPressed: () {
-                      Navigator.of(context).pushNamed('/history');
-                    },
-                  ),
-                  _buildMenuButton(
-                    context: context,
-                    iconPath: 'lib/assets/images/sync.png',
-                    label: 'Dữ liệu chờ', // (Hoặc 'Đồng bộ Offline')
-                    onPressed: () {
-                      // Đi đến trang PendingSyncScreen
-                      Navigator.of(context).pushNamed('/pending_sync');
-                    },
+                            if (context.mounted) {
+                              Navigator.of(context).pushNamed('/scan');
+                            }
+                          }
+                        },
+                      ),
+                      _buildMenuButton(
+                        context: context,
+                        iconPath: 'lib/assets/images/dashboard.png',
+                        label: lang.translate('dashboard'),
+                        onPressed: () {
+                          Navigator.of(context).pushNamed('/dashboard');
+                        },
+                      ),
+                      _buildMenuButton(
+                        context: context,
+                        iconPath: 'lib/assets/images/history.png',
+                        label: lang.translate('history'),
+                        onPressed: () {
+                          Navigator.of(context).pushNamed('/history');
+                        },
+                      ),
+                      _buildMenuButton(
+                        context: context,
+                        iconPath: 'lib/assets/images/sync.png',
+                        label: lang.translate('pending_data'),
+                        onPressed: () {
+                          // Đi đến trang PendingSyncScreen
+                          Navigator.of(context).pushNamed('/pending_sync');
+                        },
                   ),
                 ],
               ),
             ),
           ),
           
-          // Footer
-          InkWell(
-            onTap: () {
-              Navigator.of(context).pushNamed('/weighing_station');
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Text(
-                'Weighing Station App - Version 0.0.0',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[800],
+              // Footer
+              InkWell(
+                onTap: () {
+                  Navigator.of(context).pushNamed('/weighing_station');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    '${lang.translate('app_version')} 0.0.0',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[800],
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/settings_service.dart';
+import '../../services/language_service.dart';
 import 'package:flutter/foundation.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -23,19 +24,54 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: SettingsService(),
+      animation: Listenable.merge([SettingsService(), LanguageService()]),
       builder: (context, child) {
         final settings = SettingsService();
+        final lang = LanguageService();
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Cài đặt'),
+            title: Text(lang.translate('settings')),
           ),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // === PHẦN 0: NGÔN NGỮ ===
+              _buildSectionHeader(lang.translate('language')),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8.0),
+                  border: Border.all(color: Colors.grey.shade400),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: lang.currentLanguage,
+                    isExpanded: true,
+                    icon: const Icon(Icons.language),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'vi',
+                        child: Text(lang.translate('vietnamese')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'en',
+                        child: Text(lang.translate('english')),
+                      ),
+                    ],
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        lang.setLanguage(newValue);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              
               // === PHẦN 1: LỊCH SỬ CÂN ===
-              _buildSectionHeader('Lịch sử cân'),
+              _buildSectionHeader(lang.translate('history_range')),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
@@ -48,12 +84,13 @@ class SettingsScreen extends StatelessWidget {
                     value: settings.historyRange,
                     isExpanded: true,
                     icon: const Icon(Icons.calendar_today_outlined),
-                    items: _historyRangeOptions.entries.map((entry) {
-                      return DropdownMenuItem<String>(
-                        value: entry.key,
-                        child: Text(entry.value),
-                      );
-                    }).toList(),
+                    items: [
+                      DropdownMenuItem(value: '30', child: Text(lang.translate('30_days'))),
+                      DropdownMenuItem(value: '7', child: Text(lang.translate('7_days'))),
+                      DropdownMenuItem(value: '15', child: Text(lang.translate('15_days'))),
+                      DropdownMenuItem(value: '90', child: Text(lang.translate('90_days'))),
+                      DropdownMenuItem(value: 'all', child: Text(lang.translate('all_history'))),
+                    ],
                     onChanged: (String? newValue) {
                       if (newValue != null) {
                         settings.updateHistoryRange(newValue);
@@ -65,9 +102,9 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 32),
 
               // === PHẦN 2: TỰ ĐỘNG HOÀN TẤT ===
-              _buildSectionHeader('Tự động hoàn tất'),
+              _buildSectionHeader(lang.translate('auto_complete')),
               _buildToggleSetting(
-                label: 'Bật tự động hoàn tất',
+                label: lang.translate('auto_complete_desc'),
                 value: settings.autoCompleteEnabled,
                 onChanged: (value) {
                   settings.updateAutoCompleteEnabled(value);
@@ -77,7 +114,7 @@ class SettingsScreen extends StatelessWidget {
 
               // Điều kiện: chỉ hiện các tùy chọn nếu bật tự động hoàn tất
               if (settings.autoCompleteEnabled) ...[
-                _buildSettingLabel('Thời gian chờ cân ổn định:'),
+                _buildSettingLabel(lang.translate('stability_delay')),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
@@ -90,12 +127,11 @@ class SettingsScreen extends StatelessWidget {
                       value: settings.stabilizationDelay,
                       isExpanded: true,
                       icon: const Icon(Icons.hourglass_bottom),
-                      items: _stabilizationDelayOptions.entries.map((entry) {
-                        return DropdownMenuItem<int>(
-                          value: entry.key,
-                          child: Text(entry.value),
-                        );
-                      }).toList(),
+                      items: [
+                        DropdownMenuItem(value: 3, child: Text(lang.translate('3_seconds'))),
+                        DropdownMenuItem(value: 5, child: Text(lang.translate('5_seconds'))),
+                        DropdownMenuItem(value: 10, child: Text(lang.translate('10_seconds'))),
+                      ],
                       onChanged: (int? newValue) {
                         if (newValue != null) {
                           settings.updateStabilizationDelay(newValue);
@@ -106,7 +142,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 _buildSliderSetting(
-                  label: 'Thời gian hoàn tất (sau ổn định): ${settings.autoCompleteDelay}s',
+                  label: '${lang.translate('complete_delay')} ${settings.autoCompleteDelay}s',
                   value: settings.autoCompleteDelay.toDouble(),
                   min: 1,
                   max: 5,
@@ -119,7 +155,7 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 if (kDebugMode) ...[
                   _buildSliderSetting(
-                    label: 'Độ chênh lệch tối đa (test): ${(settings.stabilityThreshold * 1000).toStringAsFixed(0)}g',
+                    label: '${lang.translate('max_deviation')} ${(settings.stabilityThreshold * 1000).toStringAsFixed(0)}g',
                     value: settings.stabilityThreshold,
                     min: 0.01,
                     max: 1.0,
@@ -134,9 +170,9 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 32),
 
               // === PHẦN 3: ÂM THANH ===
-              _buildSectionHeader('Âm thanh'),
+              _buildSectionHeader(lang.translate('sound')),
               _buildToggleSetting(
-                label: 'Phát tiếng bíp khi cân thành công',
+                label: lang.translate('sound_enabled_desc'),
                 value: settings.beepOnSuccess,
                 onChanged: (value) {
                   settings.updateBeepOnSuccess(value);

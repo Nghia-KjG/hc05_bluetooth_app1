@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../services/database_helper.dart';
 import '../../services/sync_service.dart'; // Import SyncService
 import '../../services/notification_service.dart';
+import '../../services/language_service.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -17,6 +18,7 @@ class PendingSyncScreen extends StatefulWidget {
 class _PendingSyncScreenState extends State<PendingSyncScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final SyncService _syncService = SyncService();
+  final LanguageService _languageService = LanguageService();
   
   bool _isLoading = true;
   bool _isSyncing = false;
@@ -53,7 +55,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
       if (mounted) {
         NotificationService().showToast(
           context: context,
-          message: 'Không có kết nối mạng. Vui lòng thử lại sau.',
+          message: _languageService.translate('no_network'),
           type: ToastType.error,
         );
       }
@@ -67,15 +69,15 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return const AlertDialog(
+          return AlertDialog(
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Đang đồng bộ dữ liệu...', style: TextStyle(fontSize: 16)),
-                SizedBox(height: 8),
-                Text('Vui lòng đợi', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(_languageService.translate('syncing_data'), style: const TextStyle(fontSize: 16)),
+                const SizedBox(height: 8),
+                Text(_languageService.translate('please_wait'), style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           );
@@ -102,7 +104,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
       if (mounted) {
         NotificationService().showToast(
           context: context,
-          message: 'Đồng bộ hoàn tất!',
+          message: _languageService.translate('sync_complete'),
           type: ToastType.success,
         );
       }
@@ -126,7 +128,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
       if (mounted) {
         NotificationService().showToast(
           context: context,
-          message: 'Lỗi kết nối máy chủ. Vui lòng kiểm tra lại mạng và thử lại.',
+          message: _languageService.translate('server_error'),
           type: ToastType.error,
         );
       }
@@ -151,31 +153,38 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dữ liệu cân chờ (Offline)'),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildBody(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isSyncing ? null : _runSync,
-        icon: _isSyncing 
-            ? const CircularProgressIndicator(color: Colors.white) 
-            : const Icon(Icons.sync),
-        label: _isSyncing ? const Text('Đang đồng bộ...') : const Text('Đồng bộ ngay'),
-        backgroundColor: Colors.blue,
-      ),
+    return AnimatedBuilder(
+      animation: _languageService,
+      builder: (context, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(_languageService.translate('pending_sync_title')),
+          ),
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _buildBody(),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _isSyncing ? null : _runSync,
+            icon: _isSyncing 
+                ? const CircularProgressIndicator(color: Colors.white) 
+                : const Icon(Icons.sync),
+            label: _isSyncing 
+                ? Text(_languageService.translate('syncing')) 
+                : Text(_languageService.translate('sync_now')),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      },
     );
   }
 
   Widget _buildBody() {
     // Nếu cả 2 danh sách trống
     if (_pendingRecords.isEmpty && _failedRecords.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Không có dữ liệu nào chờ đồng bộ.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+          _languageService.translate('no_pending_data'),
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
         ),
       );
     }
@@ -187,7 +196,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
         if (_pendingRecords.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('Chưa đồng bộ (${_pendingRecords.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: Text('${_languageService.translate('pending_count')} (${_pendingRecords.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
           ..._pendingRecords.map((record) {
             final bool isNhap = record['loai'] == 'nhap';
@@ -204,17 +213,17 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                     color: isNhap ? Colors.green[800] : Colors.blue[800],
                   ),
                 ),
-                title: Text('${record['tenPhoiKeo'] ?? 'N/A'} (Lô: ${record['soLo']})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text('${record['tenPhoiKeo'] ?? 'N/A'} (${_languageService.translate('lot')}: ${record['soLo']})', style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Mã: ${record['maCode']} | Cân bởi: ${record['nguoiThaoTac'] ?? 'N/A'}'),
+                    Text('${_languageService.translate('code')}: ${record['maCode']} | ${_languageService.translate('weighed_by')}: ${record['nguoiThaoTac'] ?? 'N/A'}'),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Text('Lúc: ${_formatTime(record['thoiGianCan'])}'),
+                        Text('${_languageService.translate('at_time')}: ${_formatTime(record['thoiGianCan'])}'),
                         const Spacer(),
-                        Text(isNhap ? 'Cân Nhập' : 'Cân Xuất', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isNhap ? Colors.green[700] : Colors.blue[700])),
+                        Text(isNhap ? _languageService.translate('weighing_import') : _languageService.translate('weighing_export'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isNhap ? Colors.green[700] : Colors.blue[700])),
                       ],
                     ),
                   ],
@@ -229,7 +238,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
         if (_failedRecords.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text('Đồng bộ thất bại (${_failedRecords.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
+            child: Text('${_languageService.translate('failed_count')} (${_failedRecords.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
           ),
           ..._failedRecords.map((record) {
             final bool isNhap = record['loai'] == 'nhap';
@@ -245,11 +254,11 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                   backgroundColor: isNhap ? Colors.green[50] : Colors.blue[50],
                   child: Icon(isNhap ? Icons.error : Icons.error, color: Colors.red[700]),
                 ),
-                title: Text('${record['tenPhoiKeo'] ?? 'N/A'} (Lô: ${record['soLo']})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text('${record['tenPhoiKeo'] ?? 'N/A'} (${_languageService.translate('lot')}: ${record['soLo']})', style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Mã: ${record['maCode']}\nLúc: ${_formatTime(record['thoiGianCan'] ?? '')}'),
+                    Text('${_languageService.translate('code')}: ${record['maCode']}\n${_languageService.translate('at_time')}: ${_formatTime(record['thoiGianCan'] ?? '')}'),
                     const SizedBox(height: 6),
                     Text(errMsg, style: const TextStyle(color: Colors.redAccent), maxLines: 3, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 8),
@@ -267,26 +276,26 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                             final success = await _syncService.retryFailedSync(record['id'] as int, record);
                             if (!mounted) return;
                             if (success) {
-                              NotificationService().showToast(context: context, message: 'Đã retry thành công!', type: ToastType.success);
+                              NotificationService().showToast(context: context, message: _languageService.translate('retry_success'), type: ToastType.success);
                             } else {
-                              NotificationService().showToast(context: context, message: 'Retry thất bại hoặc chưa có mạng.', type: ToastType.error);
+                              NotificationService().showToast(context: context, message: _languageService.translate('retry_failed'), type: ToastType.error);
                             }
                             await _loadPendingData();
                             setState(() => _isSyncing = false);
                           },
                         ),
                         IconButton(
-                          tooltip: 'Xóa',
+                          tooltip: _languageService.translate('delete'),
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () async {
                             final ok = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: const Text('Xác nhận'),
-                                content: const Text('Bạn có chắc muốn xóa bản ghi thất bại này không?'),
+                                title: Text(_languageService.translate('confirm')),
+                                content: Text(_languageService.translate('confirm_delete')),
                                 actions: [
-                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')),
-                                  TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Xóa')),
+                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(_languageService.translate('cancel'))),
+                                  TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(_languageService.translate('delete'))),
                                 ],
                               ),
                             );

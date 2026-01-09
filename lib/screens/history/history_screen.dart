@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/language_service.dart';
 import '../../widgets/main_app_bar.dart';
 import 'widgets/history_table.dart';
 import '../../widgets/date_picker_input.dart';
@@ -14,6 +15,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final BluetoothService _bluetoothService = BluetoothService();
+  final LanguageService _languageService = LanguageService();
   
   // --- Tạo Controller ---
   late final HistoryController _controller;
@@ -36,11 +38,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: MainAppBar(
-        title: 'LƯU TRÌNH CÂN KEO BÁN THÀNH PHẨM',
+        title: _languageService.translate('weighing_program'),
         bluetoothService: _bluetoothService,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          tooltip: 'Quay lại trang chủ',
+          tooltip: _languageService.translate('back_to_home'),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -49,7 +51,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         padding: const EdgeInsets.all(24.0),
         // --- DÙNG ANIMATED BUILDER ĐỂ LẮNG NGHE ---
         child: AnimatedBuilder(
-          animation: _controller, // Lắng nghe thay đổi từ controller
+          animation: Listenable.merge([_controller, _languageService]), // Lắng nghe thay đổi từ controller và language
           builder: (context, child) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,9 +60,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Lịch sử cân',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                    Text(
+                      _languageService.translate('history_title'),
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                     ),
                     _buildFilterBar(), // <-- Gọi hàm _buildFilterBar (sẽ sửa ở dưới)
                   ],
@@ -97,14 +99,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _controller.selectedFilterType,
-          items: const [
+          items: [
                     // --- 2. THÊM 2 LỰA CHỌN MỚI ---
-          DropdownMenuItem(value: 'Cân Nhập', child: Text('Cân Nhập')),
-          DropdownMenuItem(value: 'Cân Xuất', child: Text('Cân Xuất')),
+          DropdownMenuItem(value: 'Cân Nhập', child: Text(_languageService.translate('filter_import'))),
+          DropdownMenuItem(value: 'Cân Xuất', child: Text(_languageService.translate('filter_export'))),
                     // --- LỰA CHỌN CŨ ---
-          DropdownMenuItem(value: 'Tên phôi keo', child: Text('Tên phôi keo')),
-          DropdownMenuItem(value: 'Mã code', child: Text('Mã code')),
-          DropdownMenuItem(value: 'Lệnh', child: Text('OVNO')),
+          DropdownMenuItem(value: 'Tên phôi keo', child: Text(_languageService.translate('filter_glue_name'))),
+          DropdownMenuItem(value: 'Mã code', child: Text(_languageService.translate('filter_code'))),
+          DropdownMenuItem(value: 'Lệnh', child: Text(_languageService.translate('filter_ovno'))),
           ],
           onChanged: (value) {
           _controller.updateFilterType(value);
@@ -134,7 +136,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: TextField(
         controller: _controller.searchController,
         decoration: InputDecoration(
-          hintText: 'Tìm kiếm...',
+          hintText: _languageService.translate('search_hint'),
           prefixIcon: const Icon(Icons.search),
           // (Code viền đen của bạn)
           enabledBorder: OutlineInputBorder(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../data/weighing_data.dart';
+import '../../../services/language_service.dart';
 import '../controllers/weighing_station_controller.dart'; // Giữ import này
 
 class WeighingTable extends StatelessWidget {
@@ -13,8 +14,9 @@ class WeighingTable extends StatelessWidget {
   final double totalXuat;
   final int xWeighed;
   final int yTotal;
+  final LanguageService _languageService = LanguageService();
 
-  const WeighingTable({
+  WeighingTable({
     super.key,
     required this.records,
     required this.weighingType,
@@ -56,7 +58,10 @@ class WeighingTable extends StatelessWidget {
             //'Khối Lượng Tồn (kg)' //chưa dùng
             : 'Khối Lượng Mẻ (kg)';
 
-    return Card(
+    return AnimatedBuilder(
+      animation: _languageService,
+      builder: (context, child) {
+        return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       clipBehavior: Clip.antiAlias,
@@ -87,7 +92,7 @@ class WeighingTable extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               child: Center(
-                child: Text('Vui lòng scan mã để hiển thị thông tin', style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic)),
+                child: Text(_languageService.translate('scan_to_display_info'), style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic)),
               ),
             )
           else
@@ -180,6 +185,8 @@ class WeighingTable extends StatelessWidget {
             ),
         ],
       ),
+    );
+      },
     );
   }
 }

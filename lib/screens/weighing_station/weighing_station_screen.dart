@@ -6,6 +6,7 @@ import 'package:hc05_bluetooth_app/services/sync_service.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/language_service.dart';
 import './controllers/weighing_station_controller.dart';
 
 // Import các widget con
@@ -41,7 +42,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
       // 3. Chỉ hiện thông báo, KHÔNG chuyển trang
       NotificationService().showToast(
         context: context,
-        message: 'Đã mất kết nối với cân Bluetooth!',
+        message: LanguageService().translate('connection_lost'),
         type: ToastType.error, // Hộp thoại màu đỏ
       );
     }
@@ -162,11 +163,11 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                   color: const Color(0xFF4CAF50), // Xanh lá cho Nhập
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Text('Cân Nhập', style: TextStyle(color: Colors.white, fontSize: 20)),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_downward, color: Color.fromARGB(255, 238, 234, 9), size: 30),
+                    Text(LanguageService().translate('weighing_import'), style: const TextStyle(color: Colors.white, fontSize: 20)),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_downward, color: Color.fromARGB(255, 238, 234, 9), size: 30),
                   ],
                 ),
               ),
@@ -179,11 +180,11 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                   color: const Color(0xFF2196F3), // Xanh dương cho Xuất
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Text('Cân Xuất', style: TextStyle(color: Colors.white, fontSize: 20)),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_upward,color: Color.fromARGB(255, 238, 9, 9), size: 30),
+                    Text(LanguageService().translate('weighing_export'), style: const TextStyle(color: Colors.white, fontSize: 20)),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_upward,color: Color.fromARGB(255, 238, 9, 9), size: 30),
                   ],
                 ),
               ),
@@ -204,11 +205,11 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
    Widget build(BuildContext context) {
     return Scaffold(
      appBar: MainAppBar(
-        title: 'LƯU TRÌNH CÂN KEO BÁN THÀNH PHẨM',
+        title: LanguageService().translate('weighing_program'),
         bluetoothService: _bluetoothService,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          tooltip: 'Quay lại trang chủ',
+          tooltip: LanguageService().translate('back_to_home'),
           onPressed: () {
             // Logic cho nút Back cụ thể của màn hình này
             Navigator.of(context).pop();
@@ -251,9 +252,9 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Trạm Cân',
-                  style: TextStyle(
+                Text(
+                  LanguageService().translate('weighing_station'),
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -313,14 +314,14 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('🛠️ DEBUG: Giả lập cân', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(LanguageService().translate('debug_simulate'), style: const TextStyle(fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 8),
                                   TextField(
                                     keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Nhập trọng lượng (kg)',
-                                      hintText: 'VD: 50.5',
-                                      border: OutlineInputBorder(),
+                                    decoration: InputDecoration(
+                                      labelText: LanguageService().translate('enter_weight'),
+                                      hintText: LanguageService().translate('example'),
+                                      border: const OutlineInputBorder(),
                                       isDense: true,
                                       filled: true,
                                       fillColor: Colors.white,
@@ -339,9 +340,9 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                                     },
                                   ),
                                   const SizedBox(height: 4),
-                                  const Text(
-                                    'Lưu ý: Nhập số xong giữ nguyên, hệ thống sẽ tự bắn data liên tục để kích hoạt "Ổn định".',
-                                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  Text(
+                                    LanguageService().translate('debug_note'),
+                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
                                   ),
                                 ],
                               ),
@@ -373,7 +374,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                                     if (_controller.khoiLuongMe == 0.0) {
                                       NotificationService().showToast(
                                         context: context,
-                                        message: 'Vui lòng scan mã để cân!',
+                                        message: LanguageService().translate('please_scan_to_weigh'),
                                         type: ToastType.info,
                                       );
                                       return;
@@ -403,8 +404,8 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                                     minimumSize:
                                         const Size(double.infinity, 48),
                                   ),
-                                  child: const Text('Hoàn tất',
-                                      style: TextStyle(fontSize: 30)),
+                                  child: Text(LanguageService().translate('complete'),
+                                      style: const TextStyle(fontSize: 30)),
                                 ),
                               );
                             },
