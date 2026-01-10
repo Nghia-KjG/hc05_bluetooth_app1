@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Thêm import cho LogicalKeyboardKey
 import 'package:hc05_bluetooth_app/services/sync_service.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/notification_service.dart';

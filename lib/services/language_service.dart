@@ -44,7 +44,7 @@ class LanguageService extends ChangeNotifier {
       'login_button': 'Đăng nhập',
       'language': 'Ngôn ngữ',
       'vietnamese': 'Tiếng Việt',
-      'english': 'Tiếng Anh',
+      'english': 'English',
       
       // Settings Screen
       'settings': 'Cài đặt',
@@ -150,6 +150,28 @@ class LanguageService extends ChangeNotifier {
       'weighed_by': 'Cân bởi',
       'at_time': 'Lúc',
       
+      // Bluetooth Status Action
+      'disconnect_tooltip': 'Ngắt kết nối',
+      'confirm_disconnect_title': 'Xác nhận ngắt kết nối',
+      'confirm_disconnect_message': 'Bạn có chắc muốn ngắt kết nối với',
+      'disconnect_button': 'Ngắt kết nối',
+      'disconnected_success': 'Đã ngắt kết nối!',
+      'connection_lost_text': 'Mất kết nối cân',
+      'reconnect_tooltip': 'Kết nối lại',
+      'reconnecting': 'Đang kết nối lại...',
+      'cannot_reconnect': 'Không thể kết nối lại, đang chuyển sang trang kết nối cân.',
+      
+      // Charts
+      'inventory_overview': 'Tổng Quan Tồn Kho',
+      'exported_weight': 'Khối lượng cân xuất',
+      'inventory_weight': 'Khối lượng tồn kho',
+      'imported_weight': 'Khối lượng cân nhập',
+      
+      // Connect Bluetooth Screen
+      'search_scale': 'Tìm kiếm Cân',
+      'no_devices_found': 'Không tìm thấy thiết bị nào.',
+      'connected_success': '✅ Kết nối thành công với cân',
+      
       // Notifications
       'please_enter_card_number': 'Vui lòng nhập số thẻ.',
       'login_success': 'Đăng nhập thành công! Chào',
@@ -168,7 +190,7 @@ class LanguageService extends ChangeNotifier {
       'factory': 'Factory',
       'login_button': 'Login',
       'language': 'Language',
-      'vietnamese': 'Vietnamese',
+      'vietnamese': 'Tiếng Việt',
       'english': 'English',
       
       // Settings Screen
@@ -274,6 +296,28 @@ class LanguageService extends ChangeNotifier {
       'code': 'Code',
       'weighed_by': 'Weighed by',
       'at_time': 'At',
+      
+      // Bluetooth Status Action
+      'disconnect_tooltip': 'Disconnect',
+      'confirm_disconnect_title': 'Confirm Disconnect',
+      'confirm_disconnect_message': 'Are you sure you want to disconnect from',
+      'disconnect_button': 'Disconnect',
+      'disconnected_success': 'Disconnected!',
+      'connection_lost_text': 'Scale Connection Lost',
+      'reconnect_tooltip': 'Reconnect',
+      'reconnecting': 'Reconnecting...',
+      'cannot_reconnect': 'Cannot reconnect, redirecting to connection page.',
+      
+      // Charts
+      'inventory_overview': 'Inventory Overview',
+      'exported_weight': 'Exported Weight',
+      'inventory_weight': 'Inventory Weight',
+      'imported_weight': 'Imported Weight',
+      
+      // Connect Bluetooth Screen
+      'search_scale': 'Search Scale',
+      'no_devices_found': 'No devices found.',
+      'connected_success': '✅ Successfully connected to scale',
       
       // Notifications
       'please_enter_card_number': 'Please enter card number.',

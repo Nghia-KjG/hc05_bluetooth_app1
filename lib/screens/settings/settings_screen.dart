@@ -49,15 +49,37 @@ class SettingsScreen extends StatelessWidget {
                   child: DropdownButton<String>(
                     value: lang.currentLanguage,
                     isExpanded: true,
-                    icon: const Icon(Icons.language),
+                    
                     items: [
                       DropdownMenuItem(
                         value: 'vi',
-                        child: Text(lang.translate('vietnamese')),
+                        child: Row(
+                          children: [
+                            Image.asset(
+                              'lib/assets/images/vi.png',
+                              width: 20,
+                              height: 20,
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.flag, size: 20),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(lang.translate('vietnamese')),
+                          ],
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'en',
-                        child: Text(lang.translate('english')),
+                        child: Row(
+                          children: [
+                            Image.asset(
+                              'lib/assets/images/en.png',
+                              width: 20,
+                              height: 20,
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.flag, size: 20),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(lang.translate('english')),
+                          ],
+                        ),
                       ),
                     ],
                     onChanged: (String? newValue) {
@@ -112,6 +134,7 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
+              if (kDebugMode) ...[
               // Điều kiện: chỉ hiện các tùy chọn nếu bật tự động hoàn tất
               if (settings.autoCompleteEnabled) ...[
                 _buildSettingLabel(lang.translate('stability_delay')),
@@ -153,7 +176,7 @@ class SettingsScreen extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 16),
-                if (kDebugMode) ...[
+                
                   _buildSliderSetting(
                     label: '${lang.translate('max_deviation')} ${(settings.stabilityThreshold * 1000).toStringAsFixed(0)}g',
                     value: settings.stabilityThreshold,

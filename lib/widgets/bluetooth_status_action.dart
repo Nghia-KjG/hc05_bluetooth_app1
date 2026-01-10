@@ -2,53 +2,86 @@ import 'package:flutter/material.dart';
 import '../models/bluetooth_device.dart';
 import '../services/bluetooth_service.dart';
 import '../services/notification_service.dart';
+import '../services/language_service.dart';
 
 class BluetoothStatusAction extends StatelessWidget {
   final BluetoothService bluetoothService;
+  final LanguageService _languageService = LanguageService();
 
-  const BluetoothStatusAction({super.key, required this.bluetoothService});
+  BluetoothStatusAction({super.key, required this.bluetoothService});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<BluetoothDevice?>(
-      valueListenable: bluetoothService.connectedDevice,
-      builder: (context, device, child) {
-        final isConnected = (device != null);
+    return AnimatedBuilder(
+      animation: _languageService,
+      builder: (context, child) {
+        return ValueListenableBuilder<BluetoothDevice?>(
+          valueListenable: bluetoothService.connectedDevice,
+          builder: (context, device, child) {
+            final isConnected = (device != null);
 
-        if (isConnected) {
-          // 🔵 TRẠNG THÁI: ĐANG KẾT NỐI
-          return Row(
-            children: [
-              Text(
-                ' ${device.name}',
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 18,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.link, size: 30.0),
-                color: Colors.green.shade700,
-                tooltip: 'Ngắt kết nối',
-                onPressed: () {
-                  bluetoothService.disconnect();
-                  NotificationService().showToast(
-                    context: context,
-                    message: 'Đã ngắt kết nối!',
-                    type: ToastType.info,
-                  );
-                },
-              ),
-            ],
-          );
-        } else {
+            if (isConnected) {
+              // 🔵 TRẠNG THÁI: ĐANG KẾT NỐI
+              return Row(
+                children: [
+                  Text(
+                    ' ${device.name}',
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 18,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.link, size: 30.0),
+                    color: Colors.green.shade700,
+                    tooltip: _languageService.translate('disconnect_tooltip'),
+                    onPressed: () async {
+                      // Hiển thị hộp thoại xác nhận
+                      final bool? confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (BuildContext dialogContext) {
+                          return AlertDialog(
+                            title: Text(_languageService.translate('confirm_disconnect_title')),
+                            content: Text('${_languageService.translate('confirm_disconnect_message')} "${device.name}"?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(dialogContext).pop(false),
+                                child: Text(_languageService.translate('cancel')),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(dialogContext).pop(true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: Text(_languageService.translate('disconnect_button')),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+
+                      // Nếu người dùng xác nhận, thực hiện ngắt kết nối
+                      if (confirmed == true && context.mounted) {
+                        bluetoothService.disconnect();
+                        NotificationService().showToast(
+                          context: context,
+                          message: _languageService.translate('disconnected_success'),
+                          type: ToastType.info,
+                        );
+                      }
+                    },
+                  ),
+                ],
+              );
+            } else {
           // 🔴 TRẠNG THÁI: CHƯA KẾT NỐI
           return Row(
             children: [
-              const Text(
-                'Mất kết nối cân',
-                style: TextStyle(
+              Text(
+                _languageService.translate('connection_lost_text'),
+                style: const TextStyle(
                   color: Colors.red,
                   fontWeight: FontWeight.w500,
                   fontSize: 18,
@@ -57,13 +90,13 @@ class BluetoothStatusAction extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.link_off, size: 30.0),
                 color: Colors.red,
-                tooltip: 'Kết nối lại',
+                tooltip: _languageService.translate('reconnect_tooltip'),
                 onPressed: () async {
                   // ⚙️ Bật async để dùng await trong callback
                   if (bluetoothService.lastConnectedDevice != null) {
                     NotificationService().showToast(
                       context: context,
-                      message: 'Đang kết nối lại...',
+                      message: _languageService.translate('reconnecting'),
                       type: ToastType.info,
                     );
                     bluetoothService.connectToDevice(
@@ -73,8 +106,7 @@ class BluetoothStatusAction extends StatelessWidget {
                     if (!context.mounted) return;
                     NotificationService().showToast(
                       context: context,
-                      message:
-                          'Không thể kết nối lại, đang chuyển sang trang kết nối cân.',
+                      message: _languageService.translate('cannot_reconnect'),
                       type: ToastType.error,
                     );
 
@@ -88,6 +120,8 @@ class BluetoothStatusAction extends StatelessWidget {
             ],
           );
         }
+          },
+        );
       },
     );
   }

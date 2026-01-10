@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import '../../../services/language_service.dart';
 
 // Dữ liệu mẫu
 class ChartData {
@@ -10,11 +11,12 @@ class ChartData {
 }
 
 class HourlyWeighingChart extends StatelessWidget {
-  const HourlyWeighingChart({super.key, required this.data});
+  HourlyWeighingChart({super.key, required this.data});
   // Màu sắc
   static const Color colorNhap = Color(0xFF81C784); // Xanh l
   static const Color colorXuat = Color(0xFFE57373); // Đỏ
   final List<ChartData> data;
+  final LanguageService _languageService = LanguageService();
   
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,10 @@ class HourlyWeighingChart extends StatelessWidget {
       maxY = (maxVal / 100).ceil() * 100;
       if (maxY == 0) maxY = 2000; // Tránh trường hợp 0
     }
-    return Column(
+    return AnimatedBuilder(
+      animation: _languageService,
+      builder: (context, child) {
+        return Column(
       children: [
         Expanded(
           child: BarChart(
@@ -137,7 +142,9 @@ class HourlyWeighingChart extends StatelessWidget {
         const SizedBox(height: 16),
         // 7. Chú thích (Legend)
         _buildLegend(),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -188,9 +195,9 @@ class HourlyWeighingChart extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _legendItem(colorNhap, 'Khối lượng cân nhập'),
+        _legendItem(colorNhap, _languageService.translate('imported_weight')),
         const SizedBox(width: 16),
-        _legendItem(colorXuat, 'Khối lượng cân xuất'),
+        _legendItem(colorXuat, _languageService.translate('exported_weight')),
       ],
     );
   }

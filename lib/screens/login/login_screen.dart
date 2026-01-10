@@ -323,7 +323,6 @@ class _LoginScreenState extends State<LoginScreen> {
               DropdownButtonHideUnderline(
                 child: DropdownButtonFormField<String>(
                   initialValue: lang.currentLanguage,
-                  icon: const Icon(Icons.language),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
@@ -331,11 +330,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   items: [
                     DropdownMenuItem(
                       value: 'vi',
-                      child: Text(lang.translate('vietnamese')),
+                      child: Row(
+                        children: [
+                          Image.asset(
+                            'lib/assets/images/vi.png',
+                            width: 20,
+                            height: 20,
+                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.flag, size: 20),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(lang.translate('vietnamese')),
+                        ],
+                      ),
                     ),
                     DropdownMenuItem(
                       value: 'en',
-                      child: Text(lang.translate('english')),
+                      child: Row(
+                        children: [
+                          Image.asset(
+                            'lib/assets/images/en.png',
+                            width: 20,
+                            height: 20,
+                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.flag, size: 20),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(lang.translate('english')),
+                        ],
+                      ),
                     ),
                   ],
                   onChanged: (v) async {

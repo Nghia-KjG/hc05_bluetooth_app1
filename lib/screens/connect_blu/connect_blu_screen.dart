@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/bluetooth_device.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/language_service.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -12,6 +13,7 @@ class ScanScreen extends StatefulWidget {
 
 class _ScanScreenState extends State<ScanScreen> {
   final BluetoothService _bluetoothService = BluetoothService();
+  final LanguageService _languageService = LanguageService();
 
   @override
   void initState() {
@@ -24,7 +26,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
       NotificationService().showToast(
         context: context,
-        message: '✅ Kết nối thành công với cân ${device.name}',
+        message: '${_languageService.translate('connected_success')} ${device.name}',
         type: ToastType.success,
       );
       await Future.delayed(const Duration(seconds: 4));
@@ -35,12 +37,15 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tìm kiếm Cân'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Quay lại trang chủ',
+    return AnimatedBuilder(
+      animation: _languageService,
+      builder: (context, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(_languageService.translate('search_scale')),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              tooltip: _languageService.translate('back_to_home'),
           onPressed: () {
             _bluetoothService.stopScan();
             Navigator.of(context).pop();
@@ -72,7 +77,7 @@ class _ScanScreenState extends State<ScanScreen> {
               valueListenable: _bluetoothService.scanResults,
               builder: (context, results, child) {
                 if (results.isEmpty) {
-                  return const Center(child: Text('Không tìm thấy thiết bị nào.'));
+                  return Center(child: Text(_languageService.translate('no_devices_found')));
                 }
                 return ListView.builder(
                   itemCount: results.length,
@@ -92,6 +97,8 @@ class _ScanScreenState extends State<ScanScreen> {
           ),
         ],
       ),
+        );
+      },
     );
   }
 }

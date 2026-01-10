@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import '../../../services/language_service.dart';
 
 // (Màu sắc chúng ta đã dùng ở Bar chart)
 const Color colorNhap = Color(0xFF42A5F5); // Xanh lá
@@ -8,8 +9,9 @@ const Color colorTon = Color(0xFFFFA726); // Đỏ
 class InventoryPieChart extends StatelessWidget {
   final double totalNhap;
   final double totalXuat;
+  final LanguageService _languageService = LanguageService();
 
-  const InventoryPieChart({
+  InventoryPieChart({
     super.key,
     required this.totalNhap,
     required this.totalXuat,
@@ -38,14 +40,17 @@ class InventoryPieChart extends StatelessWidget {
       phanTramXuat = 100;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 1. Tiêu đề
-        const Text(
-          'Tổng Quan Tồn Kho',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
+    return AnimatedBuilder(
+      animation: _languageService,
+      builder: (context, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Tiêu đề
+            Text(
+              _languageService.translate('inventory_overview'),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
         const SizedBox(height: 24),
         
         // 2. Biểu đồ tròn
@@ -90,10 +95,12 @@ class InventoryPieChart extends StatelessWidget {
         const SizedBox(height: 24),
         
         // 3. Chú thích (Legend)
-        _buildLegendItem(colorNhap, 'Khối lượng cân xuất (${totalXuat.toStringAsFixed(2)})'),
+        _buildLegendItem(colorNhap, '${_languageService.translate('exported_weight')} (${totalXuat.toStringAsFixed(2)})'),
         const SizedBox(height: 8),
-        _buildLegendItem(colorTon, 'Khối lượng tồn kho (${tonKho.toStringAsFixed(3)})'),
-      ],
+        _buildLegendItem(colorTon, '${_languageService.translate('inventory_weight')} (${tonKho.toStringAsFixed(3)})'),
+          ],
+        );
+      },
     );
   }
 
