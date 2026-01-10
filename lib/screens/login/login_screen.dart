@@ -302,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 8),
               DropdownButtonHideUnderline(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedFactory,
+                  initialValue: _selectedFactory,
                   icon: const Icon(Icons.factory_outlined),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
@@ -322,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 8),
               DropdownButtonHideUnderline(
                 child: DropdownButtonFormField<String>(
-                  value: lang.currentLanguage,
+                  initialValue: lang.currentLanguage,
                   icon: const Icon(Icons.language),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),

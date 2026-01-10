@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Thêm import cho LogicalKeyboardKey
 import 'package:hc05_bluetooth_app/services/sync_service.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/notification_service.dart';
@@ -33,6 +34,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
   final SyncService _syncService = SyncService();
 
   final TextEditingController _scanTextController = TextEditingController(); // CONTROLLER CHO SCAN INPUT FIELD
+  final FocusNode _scanFocusNode = FocusNode(); // Focus node cho ô scan input
 
   void _onConnectionChange() {
     // 1. Kiểm tra xem màn hình còn "sống" (mounted)
@@ -84,6 +86,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('🚀 WeighingStationScreen initState');
     // --- KHỞI TẠO CONTROLLER ---
     _controller = WeighingStationController(bluetoothService: _bluetoothService);
     // Đăng ký callback để clear scan input khi auto-complete thành công
@@ -100,6 +103,10 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
         _bluetoothService.currentWeight.value = 0.0;
       }
       setState(() {});
+      // Focus lại ô scan sau khi auto-complete
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) _scanFocusNode.requestFocus();
+      });
     };
     // Initialize according to current settings
     if (SettingsService().autoCompleteEnabled) {
@@ -110,6 +117,12 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
     SettingsService().addListener(_onSettingsChanged);
     _bluetoothService.connectedDevice.addListener(_onConnectionChange);
     _syncService.syncHistoryQueue();
+    
+    // Request focus cho ô scan sau khi build xong
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('📌 PostFrameCallback - Requesting focus cho _scanFocusNode');
+      _scanFocusNode.requestFocus();
+    });
   }
 
   @override
@@ -117,6 +130,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
     _simulationTimer?.cancel(); // Hủy Timer giả lập nếu còn chạy
     _controller.dispose();
     _scanTextController.dispose(); // Hủy controller khi màn hình bị hủy
+    _scanFocusNode.dispose(); // Hủy FocusNode của ô scan
     _bluetoothService.connectedDevice.removeListener(_onConnectionChange);
     SettingsService().removeListener(_onSettingsChanged);
     super.dispose();
@@ -203,31 +217,38 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
 
   @override
    Widget build(BuildContext context) {
-    return Scaffold(
-     appBar: MainAppBar(
-        title: LanguageService().translate('weighing_program'),
-        bluetoothService: _bluetoothService,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: LanguageService().translate('back_to_home'),
-          onPressed: () {
-            // Logic cho nút Back cụ thể của màn hình này
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              // Hàm _buildLayout bây giờ nằm bên trong builder
-              return _buildLayout();
+    return GestureDetector(
+      // Khi tap vào bất kỳ đâu trên màn hình -> request focus cho ô scan
+      onTap: () {
+        debugPrint('👆 TAP! Requesting focus cho _scanFocusNode');
+        _scanFocusNode.requestFocus();
+      },
+      child: Scaffold(
+       appBar: MainAppBar(
+          title: LanguageService().translate('weighing_program'),
+          bluetoothService: _bluetoothService,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            tooltip: LanguageService().translate('back_to_home'),
+            onPressed: () {
+              // Logic cho nút Back cụ thể của màn hình này
+              Navigator.of(context).pop();
             },
-          );
-        },
-      ),
-    );
+          ),
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                // Hàm _buildLayout bây giờ nằm bên trong builder
+                return _buildLayout();
+                },
+              );
+            },
+          ),
+        ),
+      );
   }
 
   // Widget layout chính
@@ -298,8 +319,15 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                           const SizedBox(height: 20),
                           ScanInputField(
                             controller: _scanTextController,
-                            onScan: (code) =>
-                                _controller.handleScan(context, code),
+                            focusNode: _scanFocusNode,
+                            onScan: (code) {
+                                debugPrint('🎯 onScan callback: "$code"');
+                                _controller.handleScan(context, code);
+                                // Focus lại ô scan sau khi xử lý scan
+                                Future.delayed(const Duration(milliseconds: 100), () {
+                                  if (mounted) _scanFocusNode.requestFocus();
+                                });
+                            },
                           ),
                           const SizedBox(height: 20),
                           // === KHU VỰC TEST (Chỉ dùng khi dev) ===
@@ -388,6 +416,10 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
 
                                     if (success) {
                                       _scanTextController.clear();
+                                      // Focus lại ô scan sau khi hoàn tất
+                                      Future.delayed(const Duration(milliseconds: 100), () {
+                                        if (mounted) _scanFocusNode.requestFocus();
+                                      });
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
