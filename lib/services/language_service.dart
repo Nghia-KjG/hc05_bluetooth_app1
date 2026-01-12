@@ -320,7 +320,7 @@ class LanguageService extends ChangeNotifier {
       'connected_success': '✅ Successfully connected to scale',
       
       // Notifications
-      'please_enter_card_number': 'Please enter card number.',
+      'please_enter_card_number': 'Please enter USER ID.',
       'login_success': 'Login successful! Welcome',
       'offline_login_success': 'Offline login successful! Welcome',
       'please_scan_code': 'Please scan code first.',

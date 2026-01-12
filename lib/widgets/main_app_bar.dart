@@ -103,7 +103,7 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
 
             // --- 3. Bluetooth ---
             BluetoothStatusAction(bluetoothService: bluetoothService),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
 
             // --- 4. Server backend ---
             AnimatedBuilder(
@@ -112,24 +112,13 @@ class MainAppBar extends StatelessWidget implements PreferredSizeWidget {
                 final server = ServerStatusService();
                 final connected = server.isServerConnected;
 
-                return Row(
-                  children: [
-                    Icon(
-                      connected ? Icons.cloud_done : Icons.cloud_off,
-                      color: connected ? Colors.green : Colors.red,
-                      size: 22,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      connected ? 'Server OK' : 'Server disconnected',
-                      style: TextStyle(
-                        color: connected ? Colors.green.shade700 : Colors.red.shade700,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12.0),
+                  child: Icon(
+                    connected ? Icons.wifi : Icons.wifi_off,
+                    color: connected ? Colors.green : Colors.red,
+                    size: 28,
+                  ),
                 );
               },
             ),

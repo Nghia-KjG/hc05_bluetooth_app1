@@ -178,6 +178,9 @@ class WeighingStationController with ChangeNotifier {
   Future<void> handleScan(BuildContext context, String code) async {
   Map<String, dynamic> data;
   final db = await _dbHelper.database;
+  
+  // Kiểm tra lại trạng thái kết nối server trước khi scan
+  await _serverStatus.checkServer();
   final bool isServerConnected = _serverStatus.isServerConnected;
   
   // Biến để lưu trạng thái từ backend
