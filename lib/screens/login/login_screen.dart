@@ -30,6 +30,31 @@ class _LoginScreenState extends State<LoginScreen> {
   // Địa chỉ server nội bộ
 
   @override
+  void initState() {
+    super.initState();
+    // Sử dụng WidgetsBinding để đảm bảo load sau khi widget build xong
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSavedCardNumber();
+    });
+  }
+
+  // Load số thẻ đã lưu từ SharedPreferences
+  Future<void> _loadSavedCardNumber() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedSoThe = prefs.getString('lastLoginSoThe');
+      if (kDebugMode) print('📋 Load số thẻ đã lưu: $savedSoThe');
+      if (savedSoThe != null && savedSoThe.isNotEmpty) {
+        setState(() {
+          _soTheController.text = savedSoThe;
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) print('⚠️ Lỗi load số thẻ đã lưu: $e');
+    }
+  }
+
+  @override
   void dispose() {
     _soTheController.dispose();
     super.dispose();
@@ -43,7 +68,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (soThe.isEmpty) {
       // (Báo lỗi "Vui lòng nhập số thẻ"...)
       NotificationService().showToast(
-        context: context, message: LanguageService().translate('please_enter_card_number'), type: ToastType.info,
+        context: context,
+        message: LanguageService().translate('please_enter_card_number'),
+        type: ToastType.info,
       );
       setState(() => _isLoading = false);
       return;
@@ -56,19 +83,22 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // BƯỚC 1: KIỂM TRA MẠNG
       final connectivityResult = await Connectivity().checkConnectivity();
-      final bool isOnline = connectivityResult.contains(ConnectivityResult.wifi) ||
-                            connectivityResult.contains(ConnectivityResult.mobile);
+      final bool isOnline =
+          connectivityResult.contains(ConnectivityResult.wifi) ||
+          connectivityResult.contains(ConnectivityResult.mobile);
 
       if (isOnline) {
         // --- 2. LOGIC KHI CÓ MẠNG (ONLINE FIRST) ---
         if (kDebugMode) print('🛰️ Đang đăng nhập Online...');
         try {
           final url = Uri.parse('${dotenv.env['API_BASE_URL']}/api/auth/login');
-          final response = await http.post(
-            url,
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode({'mUserID': soThe}),
-          ).timeout(const Duration(seconds: 10));
+          final response = await http
+              .post(
+                url,
+                headers: {'Content-Type': 'application/json'},
+                body: json.encode({'mUserID': soThe}),
+              )
+              .timeout(const Duration(seconds: 10));
 
           if (!mounted) return;
           final data = json.decode(response.body);
@@ -77,16 +107,15 @@ class _LoginScreenState extends State<LoginScreen> {
             // API THÀNH CÔNG
             userName = data['userData']['UserName'] as String;
             successMessage = data['message'];
-            
+
             // Đồng bộ danh sách người dùng từ /api/sync/persons (cho offline login)
             await _syncPersonsForOfflineLogin();
 
             // Đồng bộ danh sách cân để map tên hiển thị theo MAC
             await _syncDevicesForBluetoothLabel();
-            
-            // Chạy đồng bộ ngầm (không cần await)
-            _runSync(); 
 
+            // Chạy đồng bộ ngầm (không cần await)
+            _runSync();
           } else {
             // API THẤT BẠI (Vd: 404 - Sai số thẻ)
             throw WeighingException(data['message'] ?? 'Số thẻ không hợp lệ.');
@@ -94,7 +123,8 @@ class _LoginScreenState extends State<LoginScreen> {
         } catch (e) {
           // LỖI KHI GỌI API (Vd: Timeout, 500, Mất kết nối...)
           // -> CHUYỂN SANG KIỂM TRA OFFLINE (FALLBACK)
-          if (kDebugMode) print('⚠️ Lỗi API ($e), đang thử đăng nhập Offline...');
+          if (kDebugMode)
+            print('⚠️ Lỗi API ($e), đang thử đăng nhập Offline...');
           userName = await _loginFromCache(soThe);
           successMessage = 'Đăng nhập Offline thành công! Chào $userName';
         }
@@ -107,9 +137,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // --- 4. XỬ LÝ KẾT QUẢ THÀNH CÔNG (Dù là Online hay Offline) ---
       AuthService().login(soThe, userName); // Lưu state
-      final prefs = await SharedPreferences.getInstance(); // Lưu SharedPreferences
+      final prefs =
+          await SharedPreferences.getInstance(); // Lưu SharedPreferences
       await prefs.setString('soThe', soThe);
       await prefs.setString('factory', _selectedFactory);
+      await prefs.setString(
+        'lastLoginSoThe',
+        soThe,
+      ); // Lưu số thẻ để hiển thị lần sau
+      if (kDebugMode) print('💾 Đã lưu số thẻ: $soThe vào SharedPreferences');
 
       if (!mounted) return;
       NotificationService().showToast(
@@ -123,11 +159,13 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       _soTheController.clear();
       Navigator.of(context).pushReplacementNamed('/home');
-
     } catch (e) {
       // BẮT LỖI (Vd: Sai số thẻ (Online), Không tìm thấy (Offline))
       if (!mounted) return;
-      final String msg = e is WeighingException ? e.message : e.toString().replaceFirst("Exception: ", "");
+      final String msg =
+          e is WeighingException
+              ? e.message
+              : e.toString().replaceFirst("Exception: ", "");
       NotificationService().showToast(
         context: context,
         message: msg,
@@ -151,14 +189,15 @@ class _LoginScreenState extends State<LoginScreen> {
     if (localUser.isEmpty) {
       throw WeighingException('Số thẻ không tồn tại trong dữ liệu Offline.');
     }
-    
+
     return localUser.first['nguoiThaoTac'] as String;
   }
 
   // --- 6. HÀM HELPER (ĐỒNG BỘ DANH SÁCH NGƯỜI DÙNG TỪ /api/sync/persons) ---
   Future<void> _syncPersonsForOfflineLogin() async {
     try {
-      if (kDebugMode) print('👥 Đang tải danh sách người dùng cho offline login...');
+      if (kDebugMode)
+        print('👥 Đang tải danh sách người dùng cho offline login...');
       await SyncService().syncPersons();
       if (kDebugMode) print('✅ Đã tải danh sách người dùng thành công');
     } catch (e) {
@@ -213,8 +252,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: Center(
             child: LayoutBuilder(
-              builder: (context, constraints) =>
-                  constraints.maxWidth > 800 ? _buildWideLayout() : _buildNarrowLayout(),
+              builder:
+                  (context, constraints) =>
+                      constraints.maxWidth > 800
+                          ? _buildWideLayout()
+                          : _buildNarrowLayout(),
             ),
           ),
         ),
@@ -227,7 +269,10 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Expanded(
           child: Center(
-            child: Image.asset('lib/assets/images/weight_login.png', width: 400),
+            child: Image.asset(
+              'lib/assets/images/weight_login.png',
+              width: 400,
+            ),
           ),
         ),
         Expanded(child: Center(child: _buildLoginForm())),
@@ -283,13 +328,18 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 32),
               Text(
                 lang.translate('card_number'),
-                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _soTheController,
                 decoration: InputDecoration(
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
                 onSubmitted: (_) => _isLoading ? null : _handleLogin(),
@@ -297,7 +347,10 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               Text(
                 lang.translate('factory'),
-                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               DropdownButtonHideUnderline(
@@ -305,26 +358,37 @@ class _LoginScreenState extends State<LoginScreen> {
                   initialValue: _selectedFactory,
                   icon: const Icon(Icons.factory_outlined),
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
-                  items: ['LHG', 'LYV', 'LVL', 'LAZ', 'LZS', 'LYM']
-                      .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedFactory = v ?? 'LHG'),
+                  items:
+                      ['LHG', 'LYV', 'LVL', 'LAZ', 'LZS', 'LYM']
+                          .map(
+                            (v) => DropdownMenuItem(value: v, child: Text(v)),
+                          )
+                          .toList(),
+                  onChanged:
+                      (v) => setState(() => _selectedFactory = v ?? 'LHG'),
                 ),
               ),
               const SizedBox(height: 20),
               Text(
                 lang.translate('language'),
-                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               DropdownButtonHideUnderline(
                 child: DropdownButtonFormField<String>(
                   initialValue: lang.currentLanguage,
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                   items: [
@@ -336,7 +400,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             'lib/assets/images/vi.png',
                             width: 20,
                             height: 20,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.flag, size: 20),
+                            errorBuilder:
+                                (context, error, stackTrace) =>
+                                    const Icon(Icons.flag, size: 20),
                           ),
                           const SizedBox(width: 8),
                           Text(lang.translate('vietnamese')),
@@ -351,7 +417,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             'lib/assets/images/en.png',
                             width: 20,
                             height: 20,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.flag, size: 20),
+                            errorBuilder:
+                                (context, error, stackTrace) =>
+                                    const Icon(Icons.flag, size: 20),
                           ),
                           const SizedBox(width: 8),
                           Text(lang.translate('english')),
@@ -374,11 +442,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   backgroundColor: const Color(0xFF6366F1),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
                 ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(lang.translate('login_button'), style: const TextStyle(fontSize: 16)),
+                child:
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                          lang.translate('login_button'),
+                          style: const TextStyle(fontSize: 16),
+                        ),
               ),
             ],
           ),

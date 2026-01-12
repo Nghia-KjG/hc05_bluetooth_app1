@@ -48,6 +48,8 @@ class WeighingRecord {
   bool? isSuccess; // Trạng thái thành công (tự thêm)
   String? loai; // Loại nhập/xuất (từ mock history)
   final int soLo;
+  double? weighedNhapAmount; // Trọng lượng đã cân nhập của mã này
+  double? weighedXuatAmount; // Trọng lượng đã cân xuất của mã này
 
   // --- Thêm các trường từ bảng khác (để tiện truy cập) ---
   String? tenPhoiKeo; // FormulaF (từ _VML_Work)
@@ -65,6 +67,8 @@ class WeighingRecord {
     this.realQty,
     this.isSuccess,
     this.loai,
+    this.weighedNhapAmount,
+    this.weighedXuatAmount,
     // Các trường bổ sung
     this.tenPhoiKeo,
     required this.soMay,
@@ -133,7 +137,7 @@ final Map<String, Map<String, dynamic>> mockWorkLSData = {
     'RKQty': 80.00, // Khối lượng thực tế
     'loai': 'nhap',
   },
-   '202508000001_hist_xuat': {
+  '202508000001_hist_xuat': {
     'OVNO': 'PD202508000002', // Giả sử cùng OVNO
     'package': 1, // Giả sử
     'MUserID': 23158, // Giả sử
@@ -149,7 +153,8 @@ final Map<String, Map<String, dynamic>> mockWorkLSData = {
 // Chuyển sang dùng trực tiếp mockWorkLSData ở trên
 
 final Map<String, Map<String, dynamic>> mockHistoryData = {
-  'N202508000001': { // Key có thể cần duy nhất hơn
+  'N202508000001': {
+    // Key có thể cần duy nhất hơn
     'maCode': '202508000001',
     'MixTime': '29/10/2025 08:10',
     'khoiLuongSauCan': 80.0, // Đổi thành double
@@ -162,14 +167,16 @@ final Map<String, Map<String, dynamic>> mockHistoryData = {
     'khoiLuongSauCan': 80.0,
     'loai': 'xuat',
   },
-  'N202508000002': { // Key có thể cần duy nhất hơn
+  'N202508000002': {
+    // Key có thể cần duy nhất hơn
     'maCode': '202508000002',
     'MixTime': '29/10/2025 08:20',
     'khoiLuongSauCan': 80.0, // Đổi thành double
     'loai': 'nhap',
     // Cần thêm QRCode để liên kết
   },
-  'N202510000001': { // Key có thể cần duy nhất hơn
+  'N202510000001': {
+    // Key có thể cần duy nhất hơn
     'maCode': '202510000001',
     'MixTime': '29/10/2025 08:10',
     'khoiLuongSauCan': 80.0, // Đổi thành double
@@ -183,7 +190,6 @@ final Map<String, Map<String, dynamic>> mockHistoryData = {
     'loai': 'xuat',
   },
 };
-
 
 // --- Hàm Parse Date Helper ---
 // (Chuyển hàm này ra đây để dùng chung)

@@ -27,15 +27,18 @@ class WeighingStationController with ChangeNotifier {
   final BluetoothService bluetoothService;
 
   // --- ĐỊNH NGHĨA IP CỦA BACKEND ---
-  final String _apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:3636';
+  final String _apiBaseUrl =
+      dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:3636';
 
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final ServerStatusService _serverStatus = ServerStatusService();
 
   String? _activeOVNO;
   String? _activeMemo;
+  String? _scannedCode; // Mã được scan gần nhất
   String? get activeOVNO => _activeOVNO;
   String? get activeMemo => _activeMemo;
+  String? get scannedCode => _scannedCode;
 
   // --- STATE ---
   final List<WeighingRecord> _records = [];
@@ -103,9 +106,10 @@ class WeighingStationController with ChangeNotifier {
       // CÂN NHẬP: Tính theo phần trăm như cũ
       // Nếu chọn 0.1 (100g option), tính cố định ±0.1kg
       // Nếu chọn các giá trị khác, tính theo phần trăm
-      final deviation = _selectedPercentage == 0.1
-          ? 0.1 // Cố định 100g (0.1kg)
-          : _standardWeight * (_selectedPercentage / 100.0);
+      final deviation =
+          _selectedPercentage == 0.1
+              ? 0.1 // Cố định 100g (0.1kg)
+              : _standardWeight * (_selectedPercentage / 100.0);
       _minWeight = _standardWeight - deviation;
       _maxWeight = _standardWeight + deviation;
     }
@@ -119,7 +123,10 @@ class WeighingStationController with ChangeNotifier {
 
   /// Cập nhật loại cân được chọn. Nếu đang ở chế độ offline và
   /// mã hiện tại đã được cân nhập trước đó, không cho phép chọn `nhap`.
-  Future<void> updateWeighingType(WeighingType? newType, BuildContext context) async {
+  Future<void> updateWeighingType(
+    WeighingType? newType,
+    BuildContext context,
+  ) async {
     if (newType == null) return;
 
     // Nếu user muốn chuyển sang 'nhap' nhưng mã hiện tại đã có bản ghi 'nhap' (offline), chặn lại.
@@ -128,14 +135,23 @@ class WeighingStationController with ChangeNotifier {
       final db = await _dbHelper.database;
 
       // Kiểm tra: đã có 'nhap' trong HistoryQueue (chờ sync) hoặc trong VmlWorkS với realQty != NULL
-      final existingInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [currentRecord.maCode, 'nhap']);
-      final existingInCache = await db.query('VmlWorkS', where: 'maCode = ? AND loai = ? AND realQty IS NOT NULL', whereArgs: [currentRecord.maCode, 'nhap']);
+      final existingInQueue = await db.query(
+        'HistoryQueue',
+        where: 'maCode = ? AND loai = ?',
+        whereArgs: [currentRecord.maCode, 'nhap'],
+      );
+      final existingInCache = await db.query(
+        'VmlWorkS',
+        where: 'maCode = ? AND loai = ? AND realQty IS NOT NULL',
+        whereArgs: [currentRecord.maCode, 'nhap'],
+      );
 
       if (existingInQueue.isNotEmpty || existingInCache.isNotEmpty) {
         if (context.mounted) {
           NotificationService().showToast(
             context: context,
-            message: 'Mã này đã được CÂN NHẬP (offline). Không thể chuyển về Cân Nhập.',
+            message:
+                'Mã này đã được CÂN NHẬP (offline). Không thể chuyển về Cân Nhập.',
             type: ToastType.error,
           );
         }
@@ -149,8 +165,8 @@ class WeighingStationController with ChangeNotifier {
 
   // --- LẤY DỮ LIỆU OFFLINE ---
   Future<Map<String, dynamic>> _scanFromCache(Database db, String code) async {
-  final List<Map<String, dynamic>> localData = await db.rawQuery(
-    '''
+    final List<Map<String, dynamic>> localData = await db.rawQuery(
+      '''
         SELECT S.maCode, S.ovNO, S.package, S.mUserID, S.qtys,
           S.realQty,
           S.loai,
@@ -161,206 +177,288 @@ class WeighingStationController with ChangeNotifier {
     LEFT JOIN VmlPersion AS P ON S.mUserID = P.mUserID
     WHERE S.maCode = ?
     ''',
-    [code],
-  );
+      [code],
+    );
 
-  if (localData.isNotEmpty) {
-    if (kDebugMode) {
-      print('🔍 Tìm thấy mã $code trong cache cục bộ.');
+    if (localData.isNotEmpty) {
+      if (kDebugMode) {
+        print('🔍 Tìm thấy mã $code trong cache cục bộ.');
+      }
+      return localData.first;
+    } else {
+      throw WeighingException('Mã "$code" không có trong dữ liệu offline.');
     }
-    return localData.first;
-  } else {
-    throw WeighingException('Mã "$code" không có trong dữ liệu offline.');
   }
-}
 
   // --- HÀM XỬ LÝ SCAN ---
   Future<void> handleScan(BuildContext context, String code) async {
-  Map<String, dynamic> data;
-  final db = await _dbHelper.database;
-  
-  // Kiểm tra lại trạng thái kết nối server trước khi scan
-  await _serverStatus.checkServer();
-  final bool isServerConnected = _serverStatus.isServerConnected;
-  
-  // Biến để lưu trạng thái từ backend
-  bool? isNhapWeighedFromServer;
+    Map<String, dynamic> data;
+    final db = await _dbHelper.database;
 
-  try {
-    if (isServerConnected) {
-      // --- BƯỚC 1: KIỂM TRA TỪ BACKEND TRƯỚC ---
-      if (kDebugMode) print('🛰️ Online Mode: Đang gọi API để kiểm tra trạng thái...');
-      final url = Uri.parse('$_apiBaseUrl/api/scan/$code');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
+    // Kiểm tra lại trạng thái kết nối server trước khi scan
+    await _serverStatus.checkServer();
+    final bool isServerConnected = _serverStatus.isServerConnected;
 
-      if (response.statusCode == 200) {
-        data = json.decode(response.body);
-        // Server may return either explicit booleans or a 'loai' string.
-        final bool flagNhap = data['isNhapWeighed'] == true;
-        final String loaiFromServer = (data['loai'] ?? '').toString().toLowerCase().trim();
-        isNhapWeighedFromServer = flagNhap || (loaiFromServer == 'nhap');
-        
-        // Lấy trọng lượng đã cân nhập/xuất từ API
-        _weighedNhapAmount = (data['weighedNhapAmount'] as num? ?? 0.0).toDouble();
-        _weighedXuatAmount = (data['weighedXuatAmount'] as num? ?? 0.0).toDouble();
-        
-        // Kiểm tra xem đã xuất hết chưa (tổng xuất >= nhập)
-        if (_weighedNhapAmount > 0 && _weighedXuatAmount >= _weighedNhapAmount) {
-          throw WeighingException('Mã này đã XUẤT HẾT (${_weighedXuatAmount.toStringAsFixed(3)}/${_weighedNhapAmount.toStringAsFixed(3)} kg). Không thể cân thêm!');
-        }
+    // Biến để lưu trạng thái từ backend
+    bool? isNhapWeighedFromServer;
 
-        // Lưu cache
-        await db.insert(
-          'VmlWork',
-          {
+    try {
+      if (isServerConnected) {
+        // --- BƯỚC 1: KIỂM TRA TỪ BACKEND TRƯỚC ---
+        if (kDebugMode)
+          print('🛰️ Online Mode: Đang gọi API để kiểm tra trạng thái...');
+        final url = Uri.parse('$_apiBaseUrl/api/scan/$code');
+        final response = await http
+            .get(url)
+            .timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          data = json.decode(response.body);
+          // Server may return either explicit booleans or a 'loai' string.
+          final bool flagNhap = data['isNhapWeighed'] == true;
+          final String loaiFromServer =
+              (data['loai'] ?? '').toString().toLowerCase().trim();
+          isNhapWeighedFromServer = flagNhap || (loaiFromServer == 'nhap');
+
+          // Lấy trọng lượng đã cân nhập/xuất từ API
+          _weighedNhapAmount =
+              (data['weighedNhapAmount'] as num? ?? 0.0).toDouble();
+          _weighedXuatAmount =
+              (data['weighedXuatAmount'] as num? ?? 0.0).toDouble();
+
+          // Kiểm tra xem đã xuất hết chưa (tổng xuất >= nhập)
+          if (_weighedNhapAmount > 0 &&
+              _weighedXuatAmount >= _weighedNhapAmount) {
+            throw WeighingException(
+              'Mã này đã XUẤT HẾT (${_weighedXuatAmount.toStringAsFixed(3)}/${_weighedNhapAmount.toStringAsFixed(3)} kg). Không thể cân thêm!',
+            );
+          }
+
+          // Lưu cache
+          await db.insert('VmlWork', {
             'ovNO': data['ovNO'],
             'tenPhoiKeo': data['tenPhoiKeo'],
             'soMay': data['soMay'],
             'memo': data['memo'],
             'totalTargetQty': data['totalTargetQty'],
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-        await db.insert(
-          'VmlPersion',
-          {
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+          await db.insert('VmlPersion', {
             'mUserID': data['mUserID'].toString(),
             'nguoiThaoTac': data['nguoiThaoTac'],
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-      } else if (response.statusCode == 404) {
-        final errorData = json.decode(response.body);
-        throw WeighingException(errorData['message'] ?? 'Không tìm thấy mã');
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        } else if (response.statusCode == 404) {
+          final errorData = json.decode(response.body);
+          throw WeighingException(errorData['message'] ?? 'Không tìm thấy mã');
+        } else {
+          throw WeighingException(
+            'Lỗi server: ${response.statusCode}, thử lại offline...',
+          );
+        }
       } else {
-        throw WeighingException('Lỗi server: ${response.statusCode}, thử lại offline...');
+        // --- BƯỚC 1 (OFFLINE): KIỂM TRA DỮ LIỆU LOCAL TRƯỚC ---
+        if (kDebugMode)
+          print('🔌 Offline Mode: Đang tìm trong cache cục bộ...');
+        data = await _scanFromCache(db, code);
+
+        // --- BẮT ĐẦU SỬA LỖI ---
+        // 1. Kiểm tra trạng thái từ VmlWorkS (cache đã đồng bộ)
+        final String loaiFromCache =
+            (data['loai'] ?? '').toString().toLowerCase().trim();
+        final dynamic realQtyFromCache = data['realQty'];
+        // Nếu `realQty` đã có (không null) coi là đã cân (nhập) — an toàn hơn khi `loai` có thể bị thiếu
+        bool hasWeighedNhapInCache =
+            (realQtyFromCache != null) || (loaiFromCache == 'nhap');
+
+        // 2. Kiểm tra thêm HistoryQueue (dữ liệu chờ đồng bộ)
+        final existingNhapInQueue = await db.query(
+          'HistoryQueue',
+          where: 'maCode = ? AND loai = ?',
+          whereArgs: [code, 'nhap'],
+        );
+        bool hasWeighedNhapInQueue = existingNhapInQueue.isNotEmpty;
+
+        // 3. Trạng thái "Đã cân nhập" = (đã cân trong cache) HOẶC (đã cân trong hàng đợi)
+        isNhapWeighedFromServer =
+            hasWeighedNhapInCache || hasWeighedNhapInQueue;
+        // --- KẾT THÚC SỬA LỖI ---
+
+        // 4. Tính tổng trọng lượng đã cân nhập/xuất từ local
+        // Lấy từ HistoryQueue (chờ sync)
+        final nhapInQueue = await db.query(
+          'HistoryQueue',
+          where: 'maCode = ? AND loai = ?',
+          whereArgs: [code, 'nhap'],
+        );
+        final xuatInQueue = await db.query(
+          'HistoryQueue',
+          where: 'maCode = ? AND loai = ?',
+          whereArgs: [code, 'xuat'],
+        );
+
+        double localNhapAmount = 0.0;
+        double localXuatAmount = 0.0;
+
+        // Cộng từ HistoryQueue
+        for (var row in nhapInQueue) {
+          localNhapAmount += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
+        }
+        for (var row in xuatInQueue) {
+          localXuatAmount += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
+        }
+
+        // Lấy từ cache VmlWorkS nếu có (đã sync)
+        if (realQtyFromCache != null && loaiFromCache == 'nhap') {
+          localNhapAmount += (realQtyFromCache as num).toDouble();
+        }
+
+        _weighedNhapAmount = localNhapAmount;
+        _weighedXuatAmount = localXuatAmount;
+
+        // Ghi lại dạng normalized để debug
+        if (kDebugMode) {
+          print(
+            '🔍 loaiFromCache="$loaiFromCache" (hasWeighedNhapInCache=$hasWeighedNhapInCache)',
+          );
+          print(
+            '🔍 existingNhapInQueue (Chờ sync): ${existingNhapInQueue.length} (hasWeighedNhapInQueue=$hasWeighedNhapInQueue)',
+          );
+          print(
+            '🔍 Offline weighedNhap=$_weighedNhapAmount, weighedXuat=$_weighedXuatAmount',
+          );
+        }
       }
-    } else {
-      // --- BƯỚC 1 (OFFLINE): KIỂM TRA DỮ LIỆU LOCAL TRƯỚC ---
-      if (kDebugMode) print('🔌 Offline Mode: Đang tìm trong cache cục bộ...');
-      data = await _scanFromCache(db, code);
 
-      // --- BẮT ĐẦU SỬA LỖI ---
-      // 1. Kiểm tra trạng thái từ VmlWorkS (cache đã đồng bộ)
-      final String loaiFromCache = (data['loai'] ?? '').toString().toLowerCase().trim();
-      final dynamic realQtyFromCache = data['realQty'];
-      // Nếu `realQty` đã có (không null) coi là đã cân (nhập) — an toàn hơn khi `loai` có thể bị thiếu
-      bool hasWeighedNhapInCache = (realQtyFromCache != null) || (loaiFromCache == 'nhap');
+      // --- BƯỚC 2: TỰ ĐỘNG XÁC ĐỊNH LOẠI CÂN DỰA TRÊN TRẠNG THÁI ---
+      // - Nếu chưa cân nhập → loại = nhap
+      // - Nếu đã cân nhập → loại = xuat
+      WeighingType autoDetectedType =
+          isNhapWeighedFromServer == true
+              ? WeighingType.xuat
+              : WeighingType.nhap;
 
-      // 2. Kiểm tra thêm HistoryQueue (dữ liệu chờ đồng bộ)
-      final existingNhapInQueue = await db.query(
-        'HistoryQueue',
-        where: 'maCode = ? AND loai = ?',
-        whereArgs: [code, 'nhap'],
-      );
-      bool hasWeighedNhapInQueue = existingNhapInQueue.isNotEmpty;
-
-      // 3. Trạng thái "Đã cân nhập" = (đã cân trong cache) HOẶC (đã cân trong hàng đợi)
-      isNhapWeighedFromServer = hasWeighedNhapInCache || hasWeighedNhapInQueue;
-      // --- KẾT THÚC SỬA LỖI ---
-
-      // 4. Tính tổng trọng lượng đã cân nhập/xuất từ local
-      // Lấy từ HistoryQueue (chờ sync)
-      final nhapInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [code, 'nhap']);
-      final xuatInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [code, 'xuat']);
-      
-      double localNhapAmount = 0.0;
-      double localXuatAmount = 0.0;
-      
-      // Cộng từ HistoryQueue
-      for (var row in nhapInQueue) {
-        localNhapAmount += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
-      }
-      for (var row in xuatInQueue) {
-        localXuatAmount += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
-      }
-      
-      // Lấy từ cache VmlWorkS nếu có (đã sync)
-      if (realQtyFromCache != null && loaiFromCache == 'nhap') {
-        localNhapAmount += (realQtyFromCache as num).toDouble();
-      }
-      
-      _weighedNhapAmount = localNhapAmount;
-      _weighedXuatAmount = localXuatAmount;
-
-      // Ghi lại dạng normalized để debug
       if (kDebugMode) {
-        print('🔍 loaiFromCache="$loaiFromCache" (hasWeighedNhapInCache=$hasWeighedNhapInCache)');
-        print('🔍 existingNhapInQueue (Chờ sync): ${existingNhapInQueue.length} (hasWeighedNhapInQueue=$hasWeighedNhapInQueue)');
-        print('🔍 Offline weighedNhap=$_weighedNhapAmount, weighedXuat=$_weighedXuatAmount');
+        print('📊 Trạng thái mã $code:');
+        print('  - Đã cân nhập: $isNhapWeighedFromServer');
+        print(
+          '  - Loại tự động: ${autoDetectedType == WeighingType.nhap ? "CÂN NHẬP" : "CÂN XUẤT"}',
+        );
       }
+
+      // --- BƯỚC 3: CẬP NHẬT LOẠI CÂN ---
+      _selectedWeighingType = autoDetectedType;
+
+      // --- CẬP NHẬT UI ---
+      if (!context.mounted) return;
+
+      if (_activeOVNO == null || _activeOVNO != data['ovNO']) {
+        _activeOVNO = data['ovNO'];
+        _activeMemo = data['memo'];
+      }
+
+      _activeTotalTargetQty =
+          (data['totalTargetQty'] as num? ?? 0.0).toDouble();
+      _activeTotalNhap = (data['totalNhapWeighed'] as num? ?? 0.0).toDouble();
+      _activeTotalXuat = (data['totalXuatWeighed'] as num? ?? 0.0).toDouble();
+      _activeXWeighed = (data['x_WeighedNhap'] as num? ?? 0).toInt();
+      _activeYTotal = (data['y_TotalPackages'] as num? ?? 0).toInt();
+
+      // Lưu mã được scan
+      _scannedCode = code;
+
+      // Xóa danh sách cũ và thêm toàn bộ mã từ backend
+      _records.clear();
+
+      // Kiểm tra xem data có trường 'codes' không
+      if (data['codes'] != null && data['codes'] is List) {
+        final List<dynamic> codes = data['codes'];
+
+        // Tìm qtys của mã được scan để tính Min/Max
+        double scannedQtys = 0.0;
+        for (var codeData in codes) {
+          if (codeData['maCode'] == code) {
+            scannedQtys = (codeData['qtys'] as num? ?? 0.0).toDouble();
+            break;
+          }
+        }
+        _standardWeight = scannedQtys;
+        _calculateMinMax();
+        for (var codeData in codes) {
+          // Parse mixTime từ backend nếu có
+          DateTime? mixTime;
+          if (codeData['mixTime'] != null) {
+            try {
+              mixTime = DateTime.parse(codeData['mixTime'].toString());
+            } catch (e) {
+              if (kDebugMode) print('⚠️ Lỗi parse mixTime: $e');
+            }
+          }
+
+          final newRecord = WeighingRecord(
+            maCode: codeData['maCode'] ?? '',
+            ovNO: data['ovNO'] ?? '',
+            package: (codeData['package'] as num? ?? 0).toInt(),
+            mUserID: (codeData['mUserID'] ?? '').toString(),
+            qtys: (codeData['qtys'] as num? ?? 0.0).toDouble(),
+            soLo: (data['soLo'] as num? ?? 0).toInt(),
+            tenPhoiKeo: data['tenPhoiKeo'],
+            soMay: (data['soMay'] ?? '').toString(),
+            nguoiThaoTac: data['nguoiThaoTac'],
+            weighedNhapAmount:
+                (codeData['weighedNhapAmount'] as num? ?? 0.0).toDouble(),
+            weighedXuatAmount:
+                (codeData['weighedXuatAmount'] as num? ?? 0.0).toDouble(),
+            mixTime: mixTime,
+          );
+          _records.add(newRecord);
+        }
+      } else {
+        // Nếu không có 'codes', giữ lại logic cũ (tương thích ngược)
+        final newRecord = WeighingRecord(
+          maCode: data['maCode'] ?? '',
+          ovNO: data['ovNO'] ?? '',
+          package: (data['package'] as num? ?? 0).toInt(),
+          mUserID: (data['mUserID'] ?? '').toString(),
+          qtys: (data['qtys'] as num? ?? 0.0).toDouble(),
+          soLo: (data['soLo'] as num? ?? 0).toInt(),
+          tenPhoiKeo: data['tenPhoiKeo'],
+          soMay: (data['soMay'] ?? '').toString(),
+          nguoiThaoTac: data['nguoiThaoTac'],
+        );
+        _records.add(newRecord);
+      }
+
+      // Reset monitor cho mã mới
+      _stabilityMonitor?.reset();
+      _isAutoCompletePending = false;
+      _autoCompleteTimer?.cancel();
+
+      final typeText =
+          autoDetectedType == WeighingType.nhap ? "CÂN NHẬP" : "CÂN XUẤT";
+      NotificationService().showToast(
+        context: context,
+        message: 'Scan mã $code thành công!\nLoại: $typeText',
+        type: ToastType.success,
+      );
+    } on WeighingException catch (e) {
+      if (kDebugMode) print('⚖️ Lỗi nghiệp vụ: ${e.message}');
+      if (!context.mounted) return;
+      NotificationService().showToast(
+        context: context,
+        message: e.message,
+        type: ToastType.error,
+      );
+    } catch (e) {
+      if (kDebugMode) print('❌ Lỗi không xác định: $e');
+      if (!context.mounted) return;
+      NotificationService().showToast(
+        context: context,
+        message: 'Lỗi: $e',
+        type: ToastType.error,
+      );
+    } finally {
+      notifyListeners();
     }
-
-    // --- BƯỚC 2: TỰ ĐỘNG XÁC ĐỊNH LOẠI CÂN DỰA TRÊN TRẠNG THÁI ---
-    // - Nếu chưa cân nhập → loại = nhap
-    // - Nếu đã cân nhập → loại = xuat
-    WeighingType autoDetectedType = isNhapWeighedFromServer == true 
-        ? WeighingType.xuat 
-        : WeighingType.nhap;
-
-    if (kDebugMode) {
-      print('📊 Trạng thái mã $code:');
-      print('  - Đã cân nhập: $isNhapWeighedFromServer');
-      print('  - Loại tự động: ${autoDetectedType == WeighingType.nhap ? "CÂN NHẬP" : "CÂN XUẤT"}');
-    }
-
-    // --- BƯỚC 3: CẬP NHẬT LOẠI CÂN ---
-    _selectedWeighingType = autoDetectedType;
-
-    // --- CẬP NHẬT UI ---
-    if (!context.mounted) return;
-
-    if (_activeOVNO == null || _activeOVNO != data['ovNO']) {
-      _activeOVNO = data['ovNO'];
-      _activeMemo = data['memo'];
-    }
-
-    _activeTotalTargetQty = (data['totalTargetQty'] as num? ?? 0.0).toDouble();
-    _activeTotalNhap = (data['totalNhapWeighed'] as num? ?? 0.0).toDouble();
-    _activeTotalXuat = (data['totalXuatWeighed'] as num? ?? 0.0).toDouble();
-    _activeXWeighed = (data['x_WeighedNhap'] as num? ?? 0).toInt();
-    _activeYTotal = (data['y_TotalPackages'] as num? ?? 0).toInt();
-    _standardWeight = (data['qtys'] as num).toDouble();
-    _calculateMinMax();
-
-    final newRecord = WeighingRecord(
-      maCode: data['maCode'],
-      ovNO: data['ovNO'],
-      package: data['package'],
-      mUserID: data['mUserID'].toString(),
-      qtys: (data['qtys'] as num).toDouble(),
-      soLo: data['soLo'],
-      tenPhoiKeo: data['tenPhoiKeo'],
-      soMay: data['soMay'].toString(),
-      nguoiThaoTac: data['nguoiThaoTac'],
-    );
-
-    _records.insert(0, newRecord);
-    if (_records.length > 2) _records.removeLast();
-
-    // Reset monitor cho mã mới
-    _stabilityMonitor?.reset();
-    _isAutoCompletePending = false;
-    _autoCompleteTimer?.cancel();
-
-    final typeText = autoDetectedType == WeighingType.nhap ? "CÂN NHẬP" : "CÂN XUẤT";
-    NotificationService().showToast(
-      context: context,
-      message: 'Scan mã $code thành công!\nLoại: $typeText',
-      type: ToastType.success,
-    );
-  } on WeighingException catch (e) {
-    if (kDebugMode) print('⚖️ Lỗi nghiệp vụ: ${e.message}');
-    if (!context.mounted) return;
-    NotificationService().showToast(context: context, message: e.message, type: ToastType.error);
-  } catch (e) {
-    if (kDebugMode) print('❌ Lỗi không xác định: $e');
-    if (!context.mounted) return;
-    NotificationService().showToast(context: context, message: 'Lỗi: $e', type: ToastType.error);
-  } finally {
-    notifyListeners();
   }
-}
 
   // --- HOÀN TẤT CÂN ---
   /// Hoàn tất phiếu cân (lưu trọng lượng thực tế).
@@ -368,10 +466,13 @@ class WeighingStationController with ChangeNotifier {
   /// - Gửi dữ liệu lên server nếu có mạng; nếu mất mạng thì lưu vào queue offline.
   /// - Cập nhật cache local VmlWorkS và HistoryQueue (offline).
   /// - Trả về true nếu thành công, false nếu lỗi.
-  /// 
+  ///
   /// Thêm thông báo thành công với tên phôi keo, số lô và khối lượng cân.
   /// Clear ô input scan khi hoàn tất thành công (qua callback onAutoComplete).
-  Future<bool> completeCurrentWeighing(BuildContext context, double currentWeight) async {
+  Future<bool> completeCurrentWeighing(
+    BuildContext context,
+    double currentWeight,
+  ) async {
     // 1. Kiểm tra cơ bản (Giữ nguyên)
     if (_records.isEmpty) {
       NotificationService().showToast(
@@ -385,7 +486,8 @@ class WeighingStationController with ChangeNotifier {
     final currentRecord = _records[0];
     if (currentRecord.isSuccess == true) return true;
 
-    final bool isInRange = (currentWeight >= _minWeight) && (currentWeight <= _maxWeight);
+    final bool isInRange =
+        (currentWeight >= _minWeight) && (currentWeight <= _maxWeight);
     if (!isInRange) {
       NotificationService().showToast(
         context: context,
@@ -396,8 +498,11 @@ class WeighingStationController with ChangeNotifier {
     }
 
     final thoiGianCan = DateTime.now();
-    final loaiCan = (_selectedWeighingType == WeighingType.nhap) ? 'nhap' : 'xuat';
-    final thoiGianString = DateFormat('yyyy-MM-dd HH:mm:ss').format(thoiGianCan);
+    final loaiCan =
+        (_selectedWeighingType == WeighingType.nhap) ? 'nhap' : 'xuat';
+    final thoiGianString = DateFormat(
+      'yyyy-MM-dd HH:mm:ss',
+    ).format(thoiGianCan);
     final db = await _dbHelper.database;
 
     // 3. Kiểm tra trạng thái mạng (gọi checkServer để kiểm tra ngay lập tức)
@@ -407,8 +512,9 @@ class WeighingStationController with ChangeNotifier {
     try {
       if (isServerConnected) {
         // --- 4. LOGIC KHI CÓ MẠNG (ONLINE) ---
-        if (kDebugMode) print('🛰️ Online Mode: Đang gửi "Hoàn tất" lên server...');
-        
+        if (kDebugMode)
+          print('🛰️ Online Mode: Đang gửi "Hoàn tất" lên server...');
+
         final Map<String, dynamic> body = {
           'maCode': currentRecord.maCode,
           'khoiLuongCan': currentWeight,
@@ -416,81 +522,109 @@ class WeighingStationController with ChangeNotifier {
           'loai': loaiCan,
           'WUserID': AuthService().mUserID,
         };
-        
+
         final url = Uri.parse('$_apiBaseUrl/api/complete');
-        final response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode(body),
-        ).timeout(const Duration(seconds: 10));
+        final response = await http
+            .post(
+              url,
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode(body),
+            )
+            .timeout(const Duration(seconds: 10));
 
         if (!context.mounted) return false;
 
         if (response.statusCode == 201) {
           // A. API THÀNH CÔNG (Online)
           final data = json.decode(response.body);
-          
+
           // Cập nhật Hàng Tóm Tắt (lấy data mới từ server)
           final summary = data['summaryData'];
           if (summary != null) {
-            _activeTotalTargetQty = (summary['totalTargetQty'] as num).toDouble();
+            _activeTotalTargetQty =
+                (summary['totalTargetQty'] as num).toDouble();
             _activeTotalNhap = (summary['totalNhapWeighed'] as num).toDouble();
             _activeTotalXuat = (summary['totalXuatWeighed'] as num).toDouble();
             _activeMemo = summary['memo'];
           }
-          
+
           // Cập nhật cache VmlWorkS (vì đã cân thành công)
           await db.update(
             'VmlWorkS',
-            {'realQty': currentWeight, 'mixTime': thoiGianString, 'loai': loaiCan},
+            {
+              'realQty': currentWeight,
+              'mixTime': thoiGianString,
+              'loai': loaiCan,
+            },
             where: 'maCode = ?',
             whereArgs: [currentRecord.maCode],
           );
-          
-          // (Không cần lưu vào HistoryQueue, vì server đã lưu)
 
+          // (Không cần lưu vào HistoryQueue, vì server đã lưu)
         } else {
           // B. API BÁO LỖI (Vd: Lỗi 400 "Vượt khối lượng")
           final errorData = json.decode(response.body);
-          throw WeighingException(errorData['message'] ?? 'Lỗi server ${response.statusCode}');
+          throw WeighingException(
+            errorData['message'] ?? 'Lỗi server ${response.statusCode}',
+          );
         }
-      
       } else {
         // --- 5. LOGIC KHI MẤT MẠNG (OFFLINE) ---
-        if (kDebugMode) print('🔌 Offline Mode: Đang lưu "Hoàn tất" vào cache...');
-        
+        if (kDebugMode)
+          print('🔌 Offline Mode: Đang lưu "Hoàn tất" vào cache...');
+
         // Kiểm tra (offline) xem đã cân chưa
         // Đối với cân nhập
         if (loaiCan == 'nhap') {
-          final existingInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [currentRecord.maCode, 'nhap']);
+          final existingInQueue = await db.query(
+            'HistoryQueue',
+            where: 'maCode = ? AND loai = ?',
+            whereArgs: [currentRecord.maCode, 'nhap'],
+          );
           if (existingInQueue.isNotEmpty) {
             throw WeighingException('Mã này đã được cân (đang chờ đồng bộ).');
           }
-          final existingInCache = await db.query('VmlWorkS', where: 'maCode = ? AND realQty IS NOT NULL', whereArgs: [currentRecord.maCode]);
+          final existingInCache = await db.query(
+            'VmlWorkS',
+            where: 'maCode = ? AND realQty IS NOT NULL',
+            whereArgs: [currentRecord.maCode],
+          );
           if (existingInCache.isNotEmpty) {
             throw WeighingException('Mã này đã được cân nhập (đã đồng bộ).');
           }
         }
-        
+
         // Đối với cân xuất
         if (loaiCan == 'xuat') {
           // 1) Bắt buộc phải đã có cân nhập trước (offline):
           //    - Trong HistoryQueue có bản ghi 'nhap' (chờ đồng bộ) HOẶC
           //    - Trong VmlWorkS có loai = 'nhap' và realQty IS NOT NULL (đã cân nhập và lưu)
-          final existingNhapInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [currentRecord.maCode, 'nhap']);
-          final existingNhapInCache = await db.query('VmlWorkS', where: 'maCode = ? AND realQty IS NOT NULL', whereArgs: [currentRecord.maCode]);
+          final existingNhapInQueue = await db.query(
+            'HistoryQueue',
+            where: 'maCode = ? AND loai = ?',
+            whereArgs: [currentRecord.maCode, 'nhap'],
+          );
+          final existingNhapInCache = await db.query(
+            'VmlWorkS',
+            where: 'maCode = ? AND realQty IS NOT NULL',
+            whereArgs: [currentRecord.maCode],
+          );
           if (existingNhapInQueue.isEmpty && existingNhapInCache.isEmpty) {
             throw WeighingException('Lỗi: Mã này CHƯA CÂN NHẬP (offline).');
           }
 
           // 2) Kiểm tra tổng xuất + lần này <= tổng nhập
           // Tính tổng đã xuất từ HistoryQueue
-          final xuatInQueue = await db.query('HistoryQueue', where: 'maCode = ? AND loai = ?', whereArgs: [currentRecord.maCode, 'xuat']);
+          final xuatInQueue = await db.query(
+            'HistoryQueue',
+            where: 'maCode = ? AND loai = ?',
+            whereArgs: [currentRecord.maCode, 'xuat'],
+          );
           double totalXuatInQueue = 0.0;
           for (var row in xuatInQueue) {
             totalXuatInQueue += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
           }
-          
+
           // Tổng nhập
           double totalNhap = 0.0;
           for (var row in existingNhapInQueue) {
@@ -502,14 +636,16 @@ class WeighingStationController with ChangeNotifier {
               totalNhap += (realQty as num).toDouble();
             }
           }
-          
+
           // Kiểm tra: tổng xuất hiện tại + lần này <= tổng nhập
           final newTotalXuat = totalXuatInQueue + currentWeight;
           if (newTotalXuat > totalNhap) {
-            throw WeighingException('Lỗi: Tổng xuất (${newTotalXuat.toStringAsFixed(3)} kg) vượt quá tổng nhập (${totalNhap.toStringAsFixed(3)} kg)!');
+            throw WeighingException(
+              'Lỗi: Tổng xuất (${newTotalXuat.toStringAsFixed(3)} kg) vượt quá tổng nhập (${totalNhap.toStringAsFixed(3)} kg)!',
+            );
           }
         }
-        
+
         // Lưu vào Cả 2 Bảng Cục bộ
         await db.transaction((txn) async {
           await txn.insert('HistoryQueue', {
@@ -521,7 +657,11 @@ class WeighingStationController with ChangeNotifier {
           });
           await txn.update(
             'VmlWorkS',
-            {'realQty': currentWeight, 'mixTime': thoiGianString, 'loai': loaiCan},
+            {
+              'realQty': currentWeight,
+              'mixTime': thoiGianString,
+              'loai': loaiCan,
+            },
             where: 'maCode = ?',
             whereArgs: [currentRecord.maCode],
           );
@@ -533,34 +673,37 @@ class WeighingStationController with ChangeNotifier {
       currentRecord.mixTime = thoiGianCan;
       currentRecord.realQty = currentWeight;
       currentRecord.loai = loaiCan;
-      
+
       // Cập nhật tổng xuất nếu là cân xuất
       if (loaiCan == 'xuat') {
         _weighedXuatAmount += currentWeight;
       }
-      
+
       _standardWeight = 0.0;
       _calculateMinMax();
 
       if (!context.mounted) return false;
       NotificationService().showToast(
         context: context,
-        message: 'Tên Phôi Keo: ${currentRecord.tenPhoiKeo}\n'
-                 'Số Lô: ${currentRecord.soLo}\n'
-                 'Đã cân: ${currentWeight.toStringAsFixed(3)} kg!',
+        message:
+            'Tên Phôi Keo: ${currentRecord.tenPhoiKeo}\n'
+            'Số Lô: ${currentRecord.soLo}\n'
+            'Đã cân: ${currentWeight.toStringAsFixed(3)} kg!',
         type: ToastType.success,
       );
-      
+
       notifyListeners();
       return true;
-
     } on WeighingException catch (e) {
       // Bắt lỗi nghiệp vụ (Vd: "Vượt khối lượng", "Đã cân")
       if (kDebugMode) print('⚖️ Lỗi nghiệp vụ cân: ${e.message}');
       if (!context.mounted) return false;
-      NotificationService().showToast(context: context, message: e.message, type: ToastType.error);
+      NotificationService().showToast(
+        context: context,
+        message: e.message,
+        type: ToastType.error,
+      );
       return false;
-
     } catch (e) {
       // Bắt lỗi nghiêm trọng (Lỗi mạng, Lỗi SQLite)
       if (kDebugMode) print('❌ Lỗi nghiêm trọng khi hoàn tất: $e');
@@ -578,11 +721,13 @@ class WeighingStationController with ChangeNotifier {
   /// Khởi tạo theo dõi ổn định cân
   void initWeightMonitoring(BuildContext context) {
     final settings = SettingsService();
-    
+
     if (kDebugMode) {
-      print('🔍 initWeightMonitoring - autoCompleteEnabled: ${settings.autoCompleteEnabled}');
+      print(
+        '🔍 initWeightMonitoring - autoCompleteEnabled: ${settings.autoCompleteEnabled}',
+      );
     }
-    
+
     if (!settings.autoCompleteEnabled) {
       if (kDebugMode) print('⚠️ Tự động hoàn tất bị TẮT');
       return;
@@ -598,9 +743,11 @@ class WeighingStationController with ChangeNotifier {
         _onWeightStable(context);
       },
     );
-    
+
     if (kDebugMode) {
-      print('📊 Khởi tạo theo dõi ổn định (Delay: ${settings.stabilizationDelay}s, Threshold: ${settings.stabilityThreshold}kg)');
+      print(
+        '📊 Khởi tạo theo dõi ổn định (Delay: ${settings.stabilizationDelay}s, Threshold: ${settings.stabilityThreshold}kg)',
+      );
     }
   }
 
@@ -621,13 +768,16 @@ class WeighingStationController with ChangeNotifier {
     final settings = SettingsService();
     // Lấy trọng lượng TẠI THỜI ĐIỂM PHÁT HIỆN ỔN ĐỊNH
     final stableWeight = bluetoothService.currentWeight.value;
-    
+
     // Check range lần 1 (như cũ)
-    final isInRange = (stableWeight >= _minWeight) && (stableWeight <= _maxWeight);
+    final isInRange =
+        (stableWeight >= _minWeight) && (stableWeight <= _maxWeight);
     if (!isInRange) return; // Bỏ qua nếu không trong range
-    
+
     if (kDebugMode) {
-      print('✅ Cân ổn định ($stableWeight kg)! Đợi ${settings.autoCompleteDelay}s...');
+      print(
+        '✅ Cân ổn định ($stableWeight kg)! Đợi ${settings.autoCompleteDelay}s...',
+      );
     }
 
     _isAutoCompletePending = true;
@@ -638,22 +788,23 @@ class WeighingStationController with ChangeNotifier {
       Duration(seconds: settings.autoCompleteDelay),
       () async {
         if (!context.mounted) return;
-        
+
         // Lấy trọng lượng TẠI THỜI ĐIỂM LƯU (sau khi chờ)
         final currentWeight = bluetoothService.currentWeight.value;
-        
+
         // --- SỬA ĐỔI QUAN TRỌNG TẠI ĐÂY ---
         // Nếu trong lúc chờ, người dùng đã nhấc hàng ra (trọng lượng giảm mạnh hoặc về 0)
         // Thì HỦY BỎ và KHÔNG BÁO LỖI
         if (currentWeight < _minWeight) {
-           if (kDebugMode) print('⚠️ Hủy tự động: Hàng đã bị nhấc ra trước khi hoàn tất.');
-           _isAutoCompletePending = false;
-           return; 
+          if (kDebugMode)
+            print('⚠️ Hủy tự động: Hàng đã bị nhấc ra trước khi hoàn tất.');
+          _isAutoCompletePending = false;
+          return;
         }
         // -----------------------------------
 
         final success = await completeCurrentWeighing(context, currentWeight);
-        
+
         if (success) {
           if (settings.beepOnSuccess) {
             if (kDebugMode) print('🎵 Gọi playSuccessBeep()...');

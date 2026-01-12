@@ -32,14 +32,14 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
   late final WeighingStationController _controller;
   final SyncService _syncService = SyncService();
 
-  final TextEditingController _scanTextController = TextEditingController(); // CONTROLLER CHO SCAN INPUT FIELD
+  final TextEditingController _scanTextController =
+      TextEditingController(); // CONTROLLER CHO SCAN INPUT FIELD
   final FocusNode _scanFocusNode = FocusNode(); // Focus node cho ô scan input
 
   void _onConnectionChange() {
     // 1. Kiểm tra xem màn hình còn "sống" (mounted)
     // 2. Và kiểm tra xem Bluetooth có bị ngắt (value == null)
     if (mounted && _bluetoothService.connectedDevice.value == null) {
-      
       // 3. Chỉ hiện thông báo, KHÔNG chuyển trang
       NotificationService().showToast(
         context: context,
@@ -63,22 +63,24 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
 
   // HÀM GIẢ LẬP TÍN HIỆU CÂN
   void _startSimulatingWeight(double weight) {
-    _simulationTimer?.cancel(); 
-    
+    _simulationTimer?.cancel();
+
     // Cập nhật UI lần đầu
-    _bluetoothService.currentWeight.value = weight; 
-    
+    _bluetoothService.currentWeight.value = weight;
+
     // Tạo Timer bắn tín hiệu mỗi 100ms
-    _simulationTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    _simulationTimer = Timer.periodic(const Duration(milliseconds: 100), (
+      timer,
+    ) {
       // 1. Cập nhật UI (ValueNotifier sẽ chặn nếu số trùng, nhưng kệ nó)
       _bluetoothService.currentWeight.value = weight;
-      
+
       // 2. QUAN TRỌNG: Ép buộc gửi mẫu vào controller để Monitor đếm
       // Dòng này giúp Monitor nhận được: 80, 80, 80, 80... liên tục
-      _controller.addWeightSample(weight); 
-      
+      _controller.addWeightSample(weight);
+
       // Debug: Mở dòng này nếu muốn thấy nó chạy
-      // print('Simulating tick: $weight'); 
+      // print('Simulating tick: $weight');
     });
   }
 
@@ -87,7 +89,9 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
     super.initState();
     debugPrint('🚀 WeighingStationScreen initState');
     // --- KHỞI TẠO CONTROLLER ---
-    _controller = WeighingStationController(bluetoothService: _bluetoothService);
+    _controller = WeighingStationController(
+      bluetoothService: _bluetoothService,
+    );
     // Đăng ký callback để clear scan input khi auto-complete thành công
     _controller.onAutoComplete = () {
       if (!mounted) return;
@@ -116,7 +120,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
     SettingsService().addListener(_onSettingsChanged);
     _bluetoothService.connectedDevice.addListener(_onConnectionChange);
     _syncService.syncHistoryQueue();
-    
+
     // Request focus cho ô scan sau khi build xong
     WidgetsBinding.instance.addPostFrameCallback((_) {
       debugPrint('📌 PostFrameCallback - Requesting focus cho _scanFocusNode');
@@ -135,14 +139,14 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
     super.dispose();
   }
 
-
   Widget _buildWeighingTypeDropdown() {
     // Xác định màu sắc dựa trên loại cân
     final bool isNhap = _controller.selectedWeighingType == WeighingType.nhap;
-    final Color backgroundColor = isNhap 
-        ? const Color(0xFF4CAF50)  // Xanh lá cho Nhập
-        : const Color(0xFF2196F3); // Xanh dương cho Xuất
-    
+    final Color backgroundColor =
+        isNhap
+            ? const Color(0xFF4CAF50) // Xanh lá cho Nhập
+            : const Color(0xFF2196F3); // Xanh dương cho Xuất
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 115, vertical: 6),
       decoration: BoxDecoration(
@@ -150,7 +154,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
         borderRadius: BorderRadius.circular(10.0),
         boxShadow: [
           BoxShadow(
-            color: backgroundColor.withValues(alpha:5),
+            color: backgroundColor.withValues(alpha: 5),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -161,7 +165,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
           value: _controller.selectedWeighingType,
           icon: const SizedBox.shrink(), // Xóa icon mũi tên
           dropdownColor: Colors.transparent, // Nền trong suốt
-          
+
           style: const TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -171,16 +175,26 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
             DropdownMenuItem(
               value: WeighingType.nhap,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 100,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF4CAF50), // Xanh lá cho Nhập
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
-                    Text(LanguageService().translate('weighing_import'), style: const TextStyle(color: Colors.white, fontSize: 20)),
+                    Text(
+                      LanguageService().translate('weighing_import'),
+                      style: const TextStyle(color: Colors.white, fontSize: 20),
+                    ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.arrow_downward, color: Color.fromARGB(255, 238, 234, 9), size: 30),
+                    const Icon(
+                      Icons.arrow_downward,
+                      color: Color.fromARGB(255, 238, 234, 9),
+                      size: 30,
+                    ),
                   ],
                 ),
               ),
@@ -188,16 +202,26 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
             DropdownMenuItem(
               value: WeighingType.xuat,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 100,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2196F3), // Xanh dương cho Xuất
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
-                    Text(LanguageService().translate('weighing_export'), style: const TextStyle(color: Colors.white, fontSize: 20)),
+                    Text(
+                      LanguageService().translate('weighing_export'),
+                      style: const TextStyle(color: Colors.white, fontSize: 20),
+                    ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.arrow_upward,color: Color.fromARGB(255, 238, 9, 9), size: 30),
+                    const Icon(
+                      Icons.arrow_upward,
+                      color: Color.fromARGB(255, 238, 9, 9),
+                      size: 30,
+                    ),
                   ],
                 ),
               ),
@@ -215,7 +239,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
   }
 
   @override
-   Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
     return GestureDetector(
       // Khi tap vào bất kỳ đâu trên màn hình -> request focus cho ô scan
       onTap: () {
@@ -223,7 +247,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
         _scanFocusNode.requestFocus();
       },
       child: Scaffold(
-       appBar: MainAppBar(
+        appBar: MainAppBar(
           title: LanguageService().translate('weighing_program'),
           bluetoothService: _bluetoothService,
           leading: IconButton(
@@ -242,21 +266,27 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
               builder: (context, child) {
                 // Hàm _buildLayout bây giờ nằm bên trong builder
                 return _buildLayout();
-                },
-              );
-            },
-          ),
+              },
+            );
+          },
         ),
-      );
+      ),
+    );
   }
 
   // Widget layout chính
   Widget _buildLayout() {
-  // Xác định màu nền dựa trên loại cân
+    // Xác định màu nền dựa trên loại cân
     final bool isNhap = _controller.selectedWeighingType == WeighingType.nhap;
-    final Color pageBackgroundColor = isNhap
-        ? const Color.fromARGB(133, 219, 158, 43)  // Xanh lá nhạt cho Nhập
-        : const Color.fromARGB(255, 112, 128, 144); // Xanh dương nhạt cho Xuất
+    final Color pageBackgroundColor =
+        isNhap
+            ? const Color.fromARGB(133, 219, 158, 43) // Xanh lá nhạt cho Nhập
+            : const Color.fromARGB(
+              255,
+              112,
+              128,
+              144,
+            ); // Xanh dương nhạt cho Xuất
 
     return Container(
       color: pageBackgroundColor, // Nền toàn trang
@@ -265,20 +295,56 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
       child: SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height, // đảm bảo kéo dài đủ màn hình
+            minHeight:
+                MediaQuery.of(
+                  context,
+                ).size.height, // đảm bảo kéo dài đủ màn hình
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 12.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  LanguageService().translate('weighing_station'),
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      LanguageService().translate('weighing_station'),
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pushNamed('/history');
+                      },
+                      icon: const Icon(Icons.history, size: 24),
+                      label: Text(
+                        LanguageService().translate('history'),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1976D2),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 3,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -293,7 +359,9 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                         maxWeight: _controller.maxWeight,
                         khoiLuongMe: _controller.khoiLuongMe,
                         hasScannedCode: _scanTextController.text.isNotEmpty,
-                        isXuat: _controller.selectedWeighingType == WeighingType.xuat,
+                        isXuat:
+                            _controller.selectedWeighingType ==
+                            WeighingType.xuat,
                         weighedNhapAmount: _controller.weighedNhapAmount,
                         weighedXuatAmount: _controller.weighedXuatAmount,
                       ),
@@ -308,8 +376,10 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                           Row(
                             children: [
                               ActionBar(
-                                selectedPercentage: _controller.selectedPercentage,
-                                onPercentageChanged: _controller.updatePercentage,
+                                selectedPercentage:
+                                    _controller.selectedPercentage,
+                                onPercentageChanged:
+                                    _controller.updatePercentage,
                               ),
                               const SizedBox(width: 16),
                               _buildWeighingTypeDropdown(),
@@ -320,12 +390,15 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                             controller: _scanTextController,
                             focusNode: _scanFocusNode,
                             onScan: (code) {
-                                debugPrint('🎯 onScan callback: "$code"');
-                                _controller.handleScan(context, code);
-                                // Focus lại ô scan sau khi xử lý scan
-                                Future.delayed(const Duration(milliseconds: 100), () {
+                              debugPrint('🎯 onScan callback: "$code"');
+                              _controller.handleScan(context, code);
+                              // Focus lại ô scan sau khi xử lý scan
+                              Future.delayed(
+                                const Duration(milliseconds: 100),
+                                () {
                                   if (mounted) _scanFocusNode.requestFocus();
-                                });
+                                },
+                              );
                             },
                           ),
                           const SizedBox(height: 20),
@@ -341,13 +414,24 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(LanguageService().translate('debug_simulate'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(
+                                    LanguageService().translate(
+                                      'debug_simulate',
+                                    ),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   const SizedBox(height: 8),
                                   TextField(
                                     keyboardType: TextInputType.number,
                                     decoration: InputDecoration(
-                                      labelText: LanguageService().translate('enter_weight'),
-                                      hintText: LanguageService().translate('example'),
+                                      labelText: LanguageService().translate(
+                                        'enter_weight',
+                                      ),
+                                      hintText: LanguageService().translate(
+                                        'example',
+                                      ),
                                       border: const OutlineInputBorder(),
                                       isDense: true,
                                       filled: true,
@@ -355,8 +439,10 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                                     ),
                                     onChanged: (value) {
                                       // 1. Parse số
-                                      final double? weight = double.tryParse(value);
-                                      
+                                      final double? weight = double.tryParse(
+                                        value,
+                                      );
+
                                       if (weight != null) {
                                         // 2. Bắt đầu giả lập dòng chảy dữ liệu
                                         _startSimulatingWeight(weight);
@@ -369,7 +455,10 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     LanguageService().translate('debug_note'),
-                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -384,15 +473,15 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
 
                               final bool isInRange =
                                   (currentWeight >= _controller.minWeight) &&
-                                      (currentWeight <= _controller.maxWeight) &&
-                                      _controller.minWeight > 0;
+                                  (currentWeight <= _controller.maxWeight) &&
+                                  _controller.minWeight > 0;
 
-                              final Color buttonColor = isInRange
-                                  ? Colors.green
-                                  : const Color(0xFFE8EAF6);
-                              final Color textColor = isInRange
-                                  ? Colors.white
-                                  : Colors.indigo;
+                              final Color buttonColor =
+                                  isInRange
+                                      ? Colors.green
+                                      : const Color(0xFFE8EAF6);
+                              final Color textColor =
+                                  isInRange ? Colors.white : Colors.indigo;
 
                               return SizedBox(
                                 width: double.infinity,
@@ -401,24 +490,30 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                                     if (_controller.khoiLuongMe == 0.0) {
                                       NotificationService().showToast(
                                         context: context,
-                                        message: LanguageService().translate('please_scan_to_weigh'),
+                                        message: LanguageService().translate(
+                                          'please_scan_to_weigh',
+                                        ),
                                         type: ToastType.info,
                                       );
                                       return;
                                     }
 
-                                    final bool success =
-                                        await _controller.completeCurrentWeighing(
-                                      context,
-                                      currentWeight,
-                                    );
+                                    final bool success = await _controller
+                                        .completeCurrentWeighing(
+                                          context,
+                                          currentWeight,
+                                        );
 
                                     if (success) {
                                       _scanTextController.clear();
                                       // Focus lại ô scan sau khi hoàn tất
-                                      Future.delayed(const Duration(milliseconds: 100), () {
-                                        if (mounted) _scanFocusNode.requestFocus();
-                                      });
+                                      Future.delayed(
+                                        const Duration(milliseconds: 100),
+                                        () {
+                                          if (mounted)
+                                            _scanFocusNode.requestFocus();
+                                        },
+                                      );
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
@@ -432,11 +527,15 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                                       horizontal: 32,
                                       vertical: 16,
                                     ),
-                                    minimumSize:
-                                        const Size(double.infinity, 48),
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      48,
+                                    ),
                                   ),
-                                  child: Text(LanguageService().translate('complete'),
-                                      style: const TextStyle(fontSize: 30)),
+                                  child: Text(
+                                    LanguageService().translate('complete'),
+                                    style: const TextStyle(fontSize: 30),
+                                  ),
                                 ),
                               );
                             },
@@ -452,6 +551,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                   weighingType: _controller.selectedWeighingType,
                   activeOVNO: _controller.activeOVNO,
                   activeMemo: _controller.activeMemo,
+                  scannedCode: _controller.scannedCode,
                   totalTargetQty: _controller.activeTotalTargetQty,
                   totalNhap: _controller.activeTotalNhap,
                   totalXuat: _controller.activeTotalXuat,
