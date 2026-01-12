@@ -102,7 +102,7 @@ class WeighingTable extends StatelessWidget {
                       verticalDivider(),
                       headerCell(khoiLuongMeHeader, 3),
                       verticalDivider(),
-                      headerCell('Khối Lượng Đã Cân (kg)', 3),
+                      headerCell('Khối Lượng Đã Cân Nhập (kg)', 3),
                       verticalDivider(),
                       headerCell('Thời Gian Cân', 3),
                     ],

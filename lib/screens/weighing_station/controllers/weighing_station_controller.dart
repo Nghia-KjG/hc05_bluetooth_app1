@@ -473,8 +473,8 @@ class WeighingStationController with ChangeNotifier {
     BuildContext context,
     double currentWeight,
   ) async {
-    // 1. Kiểm tra cơ bản (Giữ nguyên)
-    if (_records.isEmpty) {
+    // 1. Kiểm tra cơ bản
+    if (_records.isEmpty || _scannedCode == null) {
       NotificationService().showToast(
         context: context,
         message: 'Vui lòng scan mã trước.',
@@ -483,7 +483,14 @@ class WeighingStationController with ChangeNotifier {
       return false;
     }
 
-    final currentRecord = _records[0];
+    // Tìm record của mã được scan
+    final currentRecord = _records.firstWhere(
+      (r) => r.maCode == _scannedCode,
+      orElse: () => _records[0],
+    );
+
+    if (kDebugMode) print('🎯 Hoàn tất cân cho mã: ${currentRecord.maCode}');
+
     if (currentRecord.isSuccess == true) return true;
 
     final bool isInRange =
