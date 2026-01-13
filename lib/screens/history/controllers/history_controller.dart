@@ -7,7 +7,8 @@ import 'package:flutter/foundation.dart';
 
 import '../../../data/weighing_data.dart'; // Import WeighingRecord
 import '../widgets/history_table.dart'; // Import SummaryData
-import '../../../services/settings_service.dart'; 
+import '../../../services/settings_service.dart';
+import '../../../services/database_helper.dart';
 
 class HistoryController with ChangeNotifier {
   final String _apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:3636';
@@ -29,8 +30,19 @@ class HistoryController with ChangeNotifier {
   DateTime? get selectedDate => _selectedDate;
   String _searchText = '';
   String get searchText => _searchText;
+  
+  // Device filter
+  String? _selectedDevice;
+  String? get selectedDevice => _selectedDevice;
+  List<String> _deviceList = [];
+  List<String> get deviceList => _deviceList;
 
   HistoryController() {
+    // Khởi tạo ngày hiện tại
+    _selectedDate = DateTime.now();
+    dateController.text = DateFormat('dd/MM/yyyy').format(_selectedDate!);
+    
+    _loadDevices(); // Tải danh sách devices
     _loadData(); // Tải data gốc 1 lần
     _settings.addListener(_loadData);
     searchController.addListener(() {
@@ -81,6 +93,7 @@ class HistoryController with ChangeNotifier {
               tenPhoiKeo: jsonItem['tenPhoiKeo'],
               soMay: jsonItem['soMay'].toString(),
               nguoiThaoTac: jsonItem['nguoiThaoTac'],
+              device: jsonItem['device'] as String?,
             );
           }).toList();
 
@@ -132,6 +145,17 @@ class HistoryController with ChangeNotifier {
         if (item is SummaryData) return true; // Giữ Summary
         if (item is WeighingRecord) {
           return _isSameDay(item.mixTime, _selectedDate);
+        }
+        return false;
+      }).toList();
+    }
+    
+    // --- BỘ LỌC 1.5: LỌC THEO DEVICE ---
+    if (_selectedDevice != null && _selectedDevice!.isNotEmpty) {
+      filteredList = filteredList.where((item) {
+        if (item is SummaryData) return true; // Giữ Summary
+        if (item is WeighingRecord) {
+          return item.device == _selectedDevice;
         }
         return false;
       }).toList();
@@ -225,6 +249,33 @@ class HistoryController with ChangeNotifier {
     if (_selectedDate != null) {
       _selectedDate = null;
       dateController.clear();
+      _runFilter();
+    }
+  }
+  
+  // Load danh sách devices từ database
+  Future<void> _loadDevices() async {
+    try {
+      final deviceMap = await DatabaseHelper().getDeviceNameMap();
+      _deviceList = deviceMap.values.toSet().toList(); // Loại bỏ trùng lặp
+      _deviceList.sort(); // Sắp xếp theo alphabet
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print('Lỗi load devices: $e');
+      _deviceList = [];
+    }
+  }
+  
+  void updateSelectedDevice(String? device) {
+    if (_selectedDevice != device) {
+      _selectedDevice = device;
+      _runFilter();
+    }
+  }
+  
+  void clearSelectedDevice() {
+    if (_selectedDevice != null) {
+      _selectedDevice = null;
       _runFilter();
     }
   }

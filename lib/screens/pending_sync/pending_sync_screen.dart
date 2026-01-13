@@ -200,7 +200,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
           ),
           ..._pendingRecords.map((record) {
             final bool isNhap = record['loai'] == 'nhap';
-            final weightText = '${(record['khoiLuongCan'] as num).toStringAsFixed(3)} kg';
+            final weightText = '${(record['khoiLuongCan'] as num).toStringAsFixed(2)} kg';
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               elevation: 2,
@@ -265,7 +265,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text('${(record['khoiLuongCan'] as num).toStringAsFixed(3)} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text('${(record['khoiLuongCan'] as num).toStringAsFixed(2)} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(width: 12),
                         IconButton(
                           tooltip: 'Retry',

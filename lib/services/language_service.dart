@@ -116,6 +116,8 @@ class LanguageService extends ChangeNotifier {
       
       // History Screen
       'history_title': 'Lịch sử cân',
+      'filter_device': 'Thiết bị',
+      'all_devices': 'Tất cả',
       'filter_import': 'Cân Nhập',
       'filter_export': 'Cân Xuất',
       'filter_glue_name': 'Tên phôi keo',
@@ -193,7 +195,7 @@ class LanguageService extends ChangeNotifier {
       'import_weight': 'Nhập',
       'export_weight': 'Xuất',
       'memo': 'Memo',
-      'batch_count': 'Số mẻ',
+      'batch_count': 'Số mẻ đã cân',
       
       // Weighing Table Headers
       'glue_name': 'Tên Phôi Keo',
@@ -286,6 +288,8 @@ class LanguageService extends ChangeNotifier {
       
       // History Screen
       'history_title': 'Weighing History',
+      'filter_device': 'Device',
+      'all_devices': 'All Devices',
       'filter_import': 'Import',
       'filter_export': 'Export',
       'filter_glue_name': 'Glue Name',

@@ -154,28 +154,14 @@ class WeighingTable extends StatelessWidget {
                         itemCount: sortedRecords.length,
                         itemBuilder: (context, index) {
                           final record = sortedRecords[index];
-                          // Chọn màu dựa trên trạng thái (isSuccess)
+                          // Chọn màu dựa trên mã được scan
                           Color rowColor;
-                          if (record.isSuccess == true) {
-                            rowColor = const Color.fromARGB(
-                              255,
-                              182,
-                              240,
-                              188,
-                            ); // Màu xanh lá nếu thành công
-                          } else if (index > 0 && record.realQty == null) {
-                            // Chưa hoàn tất mà đã scan mã mới (không phải dòng đầu tiên và chưa có realQty)
-                            rowColor = const Color.fromARGB(255, 248, 244, 187); // Màu đỏ nhạt
+                          if (record.maCode == scannedCode) {
+                            // Dòng mã được scan: màu vàng
+                            rowColor = const Color.fromARGB(255, 255, 255, 153);
                           } else {
-                            rowColor =
-                                index.isEven
-                                    ? Colors.white
-                                    : const Color.fromARGB(
-                                      255,
-                                      231,
-                                      231,
-                                      231,
-                                    ); // Màu sọc vằn
+                            // Các dòng khác: màu trắng
+                            rowColor = Colors.white;
                           }
 
                           return Container(
@@ -197,7 +183,7 @@ class WeighingTable extends StatelessWidget {
                                     3,
                                   ), // UerName
                                   dataCell(
-                                    record.qtys.toStringAsFixed(3),
+                                    record.qtys.toStringAsFixed(2),
                                     3,
                                   ), // Mẻ/Tồn
                                   // Khối Lượng Đã Cân:
@@ -210,17 +196,17 @@ class WeighingTable extends StatelessWidget {
                                   dataCell(
                                     record.maCode == scannedCode
                                         ? (weighingType == WeighingType.nhap
-                                            ? (record.realQty?.toStringAsFixed(3) ??
+                                            ? (record.realQty?.toStringAsFixed(2) ??
                                                 '---')
                                             : (record.weighedXuatAmount
-                                                    ?.toStringAsFixed(3) ??
+                                                    ?.toStringAsFixed(2) ??
                                                 '---'))
                                         : (weighingType == WeighingType.nhap
                                             ? (record.weighedNhapAmount
-                                                    ?.toStringAsFixed(3) ??
+                                                    ?.toStringAsFixed(2) ??
                                                 '---')
                                             : (record.weighedXuatAmount
-                                                    ?.toStringAsFixed(3) ??
+                                                    ?.toStringAsFixed(2) ??
                                                 '---')),
                                     3,
                                   ), // Đã Cân
@@ -288,14 +274,14 @@ class WeighingTable extends StatelessWidget {
 
                       // Import weight
                       Text(
-                        '${_languageService.translate('import_weight')}: ${totalNhap.toStringAsFixed(3)} / ${totalTargetQty.toStringAsFixed(3)} kg',
+                        '${_languageService.translate('import_weight')}: ${totalNhap.toStringAsFixed(2)} / ${totalTargetQty.toStringAsFixed(2)} kg',
                         style: summaryStyle,
                       ),
                       const Spacer(flex: 1),
 
                       // Export weight
                       Text(
-                        '${_languageService.translate('export_weight')}: ${totalXuat.toStringAsFixed(3)} / ${totalNhap.toStringAsFixed(3)} kg',
+                        '${_languageService.translate('export_weight')}: ${totalXuat.toStringAsFixed(2)} / ${totalNhap.toStringAsFixed(2)} kg',
                         style: summaryStyle,
                       ),
                       const Spacer(flex: 1),

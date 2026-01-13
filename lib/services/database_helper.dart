@@ -20,7 +20,7 @@ class DatabaseHelper {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "weighing_app.db");
 
-    return await openDatabase(path, version: 6, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: 7, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future _onCreate(Database db, int version) async {
@@ -63,7 +63,8 @@ class DatabaseHelper {
         khoiLuongCan REAL,
         thoiGianCan TEXT,
         loai TEXT,
-        WUserID TEXT
+        WUserID TEXT,
+        device TEXT
       )
     ''');
 
@@ -75,6 +76,7 @@ class DatabaseHelper {
         thoiGianCan TEXT,
         loai TEXT,
         WUserID TEXT,
+        device TEXT,
         errorMessage TEXT,
         failedAt TEXT
       )
@@ -124,6 +126,7 @@ class DatabaseHelper {
           khoiLuongCan REAL,
           thoiGianCan TEXT,
           loai TEXT,
+          device TEXT,
           errorMessage TEXT,
           failedAt TEXT
         )
@@ -149,6 +152,12 @@ class DatabaseHelper {
       // Thêm cột weighedNhapAmount và weighedXuatAmount vào VmlWorkS
       await db.execute('ALTER TABLE VmlWorkS ADD COLUMN weighedNhapAmount REAL DEFAULT 0');
       await db.execute('ALTER TABLE VmlWorkS ADD COLUMN weighedXuatAmount REAL DEFAULT 0');
+    }
+    
+    if (oldVersion < 7) {
+      // Thêm cột device vào HistoryQueue và FailedSyncs
+      await db.execute('ALTER TABLE HistoryQueue ADD COLUMN device TEXT');
+      await db.execute('ALTER TABLE FailedSyncs ADD COLUMN device TEXT');
     }
   }
 

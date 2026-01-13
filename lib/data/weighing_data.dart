@@ -55,6 +55,7 @@ class WeighingRecord {
   String? tenPhoiKeo; // FormulaF (từ _VML_Work)
   final String soMay; // soMay (từ _VML_Work)
   String? nguoiThaoTac; // UerName (từ _VML_Persional)
+  String? device; // Tên thiết bị cân (từ bảng Devices)
 
   WeighingRecord({
     required this.maCode,
@@ -73,6 +74,7 @@ class WeighingRecord {
     this.tenPhoiKeo,
     required this.soMay,
     this.nguoiThaoTac,
+    this.device,
   });
 }
 

@@ -72,7 +72,7 @@ class HistoryTable extends StatelessWidget {
               children: [
                 headerCell('Mã Code', 3), verticalDivider(),
                 headerCell('Tên Phôi Keo', 4), verticalDivider(),
-                headerCell('Số Lô', 3), verticalDivider(),
+                headerCell('Số Mẻ', 3), verticalDivider(),
                 headerCell('Số Máy', 3), verticalDivider(),
                 headerCell('Người Thao Tác', 4), verticalDivider(),
                 headerCell('Thời Gian Cân', 4), verticalDivider(),
@@ -97,9 +97,23 @@ class HistoryTable extends StatelessWidget {
                       if (item is WeighingRecord) {
                         // RENDER HÀNG DỮ LIỆU
                         final record = item;
-                        // (Code render Data Row giữ nguyên)
+                        // Màu khác nhau theo loại cân
+                        Color backgroundColor;
+                        if (record.loai == 'nhap') {
+                          backgroundColor = const Color(0xFFE3F2FD); // Xanh nhạt
+                        } else if (record.loai == 'xuat') {
+                          backgroundColor = const Color(0xFFFFF9C4); // Vàng nhạt
+                        } else {
+                          backgroundColor = Colors.white;
+                        }
+                        
                         return Container(
-                          color: index.isEven ? Colors.white :const Color.fromARGB(255, 231, 231, 231),
+                          decoration: BoxDecoration(
+                            color: backgroundColor,
+                            border: Border(
+                              bottom: BorderSide(color: Colors.grey[400]!, width: 0.5),
+                            ),
+                          ),
                           child: IntrinsicHeight(
                             child: Row(
                               children: [
@@ -109,8 +123,8 @@ class HistoryTable extends StatelessWidget {
                                 dataCell(record.soMay, 3),
                                 dataCell(record.nguoiThaoTac ?? 'N/A', 4, align: TextAlign.left),
                                 dataCell(formatDateTime(record.mixTime), 4),
-                                dataCell(record.qtys.toStringAsFixed(3), 3, align: TextAlign.right),
-                                dataCell(record.realQty?.toStringAsFixed(3) ?? '---', 3, align: TextAlign.right),
+                                dataCell(record.qtys.toStringAsFixed(2), 3, align: TextAlign.right),
+                                dataCell(record.realQty?.toStringAsFixed(2) ?? '---', 3, align: TextAlign.right),
                                 dataCell(record.loai ?? 'N/A', 3),
                               ],
                             ),
@@ -119,38 +133,49 @@ class HistoryTable extends StatelessWidget {
                       } else if (item is SummaryData) {
                         // RENDER HÀNG TÓM TẮT (ĐÃ CẬP NHẬT)
                         final summary = item;
-                        return Container(
-                          color: const Color.fromARGB(255, 162, 238, 164),
-                          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                          child: Row(
-                            children: [
-                              Text('${LanguageService().translate('order')} : ${summary.ovNO}', style: summaryStyle),
-                              const Spacer(flex: 1),
-                              Text('${LanguageService().translate('batch_count')}: ${summary.xWeighed} / ${summary.yTotal}', style: summaryStyle),
-                              const Spacer(flex: 1),
-                              // Dùng dữ liệu thật
-                              Text(
-                                '${LanguageService().translate('import_weight')}: ${summary.totalNhap.toStringAsFixed(3)} / ${summary.totalTargetQty.toStringAsFixed(3)} kg', 
-                                style: summaryStyle
-                              ),
-                              const Spacer(flex: 1),
-                              // Dùng dữ liệu thật
-                              Text(
-                                '${LanguageService().translate('export_weight')}: ${summary.totalXuat.toStringAsFixed(3)} / ${summary.totalNhap.toStringAsFixed(3)} kg', 
-                                style: summaryStyle
-                              ),
-                              const Spacer(flex: 1),
-                              Expanded(
-                                flex: 3,
-                                child: Text(
-                                  '${LanguageService().translate('memo')}: ${summary.memo ?? ''}',
-                                  style: summaryStyle,
-                                  textAlign: TextAlign.right,
-                                  overflow: TextOverflow.ellipsis,
+                        return Column(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 162, 238, 164),
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey[700]!, width: 1.0),
                                 ),
                               ),
-                            ],
-                          ),
+                              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text('${LanguageService().translate('order')} : ${summary.ovNO}', style: summaryStyle),
+                                      const Spacer(flex: 1),
+                                      Text('${LanguageService().translate('batch_count')}: ${summary.xWeighed} / ${summary.yTotal}', style: summaryStyle),
+                                      const Spacer(flex: 1),
+                                      // Dùng dữ liệu thật
+                                      Text(
+                                        '${LanguageService().translate('import_weight')}: ${summary.totalNhap.toStringAsFixed(2)} / ${summary.totalTargetQty.toStringAsFixed(2)} kg', 
+                                        style: summaryStyle
+                                      ),
+                                      const Spacer(flex: 1),
+                                      // Dùng dữ liệu thật
+                                      Text(
+                                        '${LanguageService().translate('export_weight')}: ${summary.totalXuat.toStringAsFixed(2)} / ${summary.totalNhap.toStringAsFixed(2)} kg', 
+                                        style: summaryStyle
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${LanguageService().translate('memo')}: ${summary.memo ?? ''}',
+                                    style: summaryStyle,
+                                    textAlign: TextAlign.left,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8), // Khoảng cách bên dưới hàng tóm tắt
+                          ],
                         );
                       }
                       return const SizedBox.shrink();

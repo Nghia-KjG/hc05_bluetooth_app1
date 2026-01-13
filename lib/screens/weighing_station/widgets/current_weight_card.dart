@@ -84,7 +84,7 @@ class CurrentWeightCard extends StatefulWidget {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          widget.hasScannedCode ? currentWeight.toStringAsFixed(3) : '---',
+                          widget.hasScannedCode ? currentWeight.toStringAsFixed(2) : '---',
                           style: TextStyle(
                             fontSize: 60,
                             fontWeight: FontWeight.bold,
@@ -150,7 +150,7 @@ class CurrentWeightCard extends StatefulWidget {
                           children: [
                             Text(LanguageService().translate('weighed_in'), style: const TextStyle(fontSize: 16, color: Colors.green)),
                             Text(
-                              '${widget.weighedNhapAmount.toStringAsFixed(3)} kg',
+                              '${widget.weighedNhapAmount.toStringAsFixed(2)} kg',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
                             ),
                           ],
@@ -161,7 +161,7 @@ class CurrentWeightCard extends StatefulWidget {
                           children: [
                             Text(LanguageService().translate('weighed_out'), style: const TextStyle(fontSize: 16, color: Colors.orange)),
                             Text(
-                              '${widget.weighedXuatAmount.toStringAsFixed(3)} kg',
+                              '${widget.weighedXuatAmount.toStringAsFixed(2)} kg',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
                             ),
                           ],
@@ -172,7 +172,7 @@ class CurrentWeightCard extends StatefulWidget {
                           children: [
                             Text(LanguageService().translate('remaining'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
                             Text(
-                              '${(widget.weighedNhapAmount - widget.weighedXuatAmount).toStringAsFixed(3)} kg',
+                              '${(widget.weighedNhapAmount - widget.weighedXuatAmount).toStringAsFixed(2)} kg',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
                             ),
                           ],
@@ -193,7 +193,7 @@ class CurrentWeightCard extends StatefulWidget {
                         children: [
                           const Text('MIN', style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.bold)),
                           Text(
-                            '${widget.minWeight.toStringAsFixed(3)} kg',
+                            '${widget.minWeight.toStringAsFixed(2)} kg',
                             style: const TextStyle(fontSize: 18, color: Colors.green, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -203,7 +203,7 @@ class CurrentWeightCard extends StatefulWidget {
                         children: [
                           const Text('MAX', style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.bold)),
                           Text(
-                            '${widget.maxWeight.toStringAsFixed(3)} kg',
+                            '${widget.maxWeight.toStringAsFixed(2)} kg',
                             style: const TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.bold),
                           ),
                         ],

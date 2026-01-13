@@ -91,6 +91,58 @@ class _HistoryScreenState extends State<HistoryScreen> {
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+      
+      // Device Dropdown (MỚI - Bên trái Date Picker)
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.grey[200], 
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _controller.selectedDevice,
+                hint: Text(_languageService.translate('filter_device')),
+                items: [
+                  DropdownMenuItem(
+                    value: null,
+                    child: Text(_languageService.translate('all_devices')),
+                  ),
+                  ..._controller.deviceList.map((device) => 
+                    DropdownMenuItem(value: device, child: Text(device)),
+                  ),
+                ],
+                onChanged: (value) {
+                  _controller.updateSelectedDevice(value);
+                },
+              ),
+            ),
+            if (_controller.selectedDevice != null)
+              IconButton(
+                icon: const Icon(Icons.clear, size: 18),
+                onPressed: () {
+                  _controller.clearSelectedDevice();
+                },
+              ),
+          ],
+        ),
+      ),
+      const SizedBox(width: 16),
+      
+      // Date Picker (Giữ nguyên)
+      DatePickerInput(
+        selectedDate: _controller.selectedDate,
+        controller: _controller.dateController,
+        onDateSelected: (newDate) {
+        _controller.updateSelectedDate(newDate);
+        },
+        onDateCleared: () {
+        _controller.clearSelectedDate();
+        },
+      ),
+      const SizedBox(width: 16),
       // Dropdown Loại Filter
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -114,19 +166,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
         ),
       ),
-      const SizedBox(width: 16),
       
-      // Date Picker (Giữ nguyên)
-      DatePickerInput(
-        selectedDate: _controller.selectedDate,
-        controller: _controller.dateController,
-        onDateSelected: (newDate) {
-        _controller.updateSelectedDate(newDate);
-        },
-        onDateCleared: () {
-        _controller.clearSelectedDate();
-        },
-      ),
       
       const VerticalDivider(),
       

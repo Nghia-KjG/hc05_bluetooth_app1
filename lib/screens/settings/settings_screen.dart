@@ -122,7 +122,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-
+              if (kDebugMode) ...[
               // === PHẦN 2: TỰ ĐỘNG HOÀN TẤT ===
               _buildSectionHeader(lang.translate('auto_complete')),
               _buildToggleSetting(
@@ -134,7 +134,7 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              if (kDebugMode) ...[
+              
               // Điều kiện: chỉ hiện các tùy chọn nếu bật tự động hoàn tất
               if (settings.autoCompleteEnabled) ...[
                 _buildSettingLabel(lang.translate('stability_delay')),

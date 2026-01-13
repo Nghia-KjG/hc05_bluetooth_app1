@@ -97,7 +97,7 @@ class InventoryPieChart extends StatelessWidget {
         // 3. Chú thích (Legend)
         _buildLegendItem(colorNhap, '${_languageService.translate('exported_weight')} (${totalXuat.toStringAsFixed(2)})'),
         const SizedBox(height: 8),
-        _buildLegendItem(colorTon, '${_languageService.translate('inventory_weight')} (${tonKho.toStringAsFixed(3)})'),
+        _buildLegendItem(colorTon, '${_languageService.translate('inventory_weight')} (${tonKho.toStringAsFixed(2)})'),
           ],
         );
       },

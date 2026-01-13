@@ -120,6 +120,12 @@ class WeighingStationController with ChangeNotifier {
     _calculateMinMax();
     notifyListeners();
   }
+  
+  /// Lấy tên cân hiện tại (device name)
+  String? getConnectedDeviceName() {
+    final device = bluetoothService.connectedDevice.value;
+    return device?.name;
+  }
 
   /// Cập nhật loại cân được chọn. Nếu đang ở chế độ offline và
   /// mã hiện tại đã được cân nhập trước đó, không cho phép chọn `nhap`.
@@ -270,7 +276,7 @@ class WeighingStationController with ChangeNotifier {
             if (_weighedNhapAmount > 0 &&
                 _weighedXuatAmount >= _weighedNhapAmount) {
               throw WeighingException(
-                'Mã này đã XUẤT HẾT (${_weighedXuatAmount.toStringAsFixed(3)}/${_weighedNhapAmount.toStringAsFixed(3)} kg). Không thể cân thêm!',
+                'Mã này đã XUẤT HẾT (${_weighedXuatAmount.toStringAsFixed(2)}/${_weighedNhapAmount.toStringAsFixed(2)} kg). Không thể cân thêm!',
               );
             }
 
@@ -324,7 +330,7 @@ class WeighingStationController with ChangeNotifier {
             if (_weighedNhapAmount > 0 &&
                 _weighedXuatAmount >= _weighedNhapAmount) {
               throw WeighingException(
-                'Mã này đã XUẤT HẾT (${_weighedXuatAmount.toStringAsFixed(3)}/${_weighedNhapAmount.toStringAsFixed(3)} kg). Không thể cân thêm!',
+                'Mã này đã XUẤT HẾT (${_weighedXuatAmount.toStringAsFixed(2)}/${_weighedNhapAmount.toStringAsFixed(2)} kg). Không thể cân thêm!',
               );
             }
 
@@ -441,7 +447,7 @@ class WeighingStationController with ChangeNotifier {
         if (_weighedNhapAmount > 0 &&
             _weighedXuatAmount >= _weighedNhapAmount) {
           throw WeighingException(
-            'Mã này đã XUẤT HẾT (${_weighedXuatAmount.toStringAsFixed(3)}/${_weighedNhapAmount.toStringAsFixed(3)} kg). Không thể cân thêm!',
+            'Mã này đã XUẤT HẾT (${_weighedXuatAmount.toStringAsFixed(2)}/${_weighedNhapAmount.toStringAsFixed(2)} kg). Không thể cân thêm!',
           );
         }
 
@@ -797,6 +803,7 @@ class WeighingStationController with ChangeNotifier {
           'thoiGianCan': thoiGianString,
           'loai': loaiCan,
           'WUserID': AuthService().mUserID,
+          'device': getConnectedDeviceName(),
         };
 
         final url = Uri.parse('$_apiBaseUrl/api/complete');
@@ -911,7 +918,7 @@ class WeighingStationController with ChangeNotifier {
           final newTotalXuat = _weighedXuatAmount + currentWeight;
           if (newTotalXuat > _weighedNhapAmount) {
             throw WeighingException(
-              'Lỗi: Tổng xuất (${newTotalXuat.toStringAsFixed(3)} kg) vượt quá tổng nhập (${_weighedNhapAmount.toStringAsFixed(3)} kg)!',
+              'Lỗi: Tổng xuất (${newTotalXuat.toStringAsFixed(2)} kg) vượt quá tổng nhập (${_weighedNhapAmount.toStringAsFixed(2)} kg)!',
             );
           }
         }
@@ -924,6 +931,7 @@ class WeighingStationController with ChangeNotifier {
             'thoiGianCan': thoiGianString,
             'loai': loaiCan,
             'WUserID': AuthService().mUserID,
+            'device': getConnectedDeviceName(),
           });
 
           // Cập nhật VmlWorkS với cột tương ứng
@@ -986,7 +994,7 @@ class WeighingStationController with ChangeNotifier {
         message:
             'Tên Phôi Keo: ${currentRecord.tenPhoiKeo}\n'
             'Số Lô: ${currentRecord.soLo}\n'
-            'Đã cân: ${currentWeight.toStringAsFixed(3)} kg!',
+            'Đã cân: ${currentWeight.toStringAsFixed(2)} kg!',
         type: ToastType.success,
       );
 
