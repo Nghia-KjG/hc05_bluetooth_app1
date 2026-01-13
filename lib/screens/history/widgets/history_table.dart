@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../data/weighing_data.dart'; // Import model
+import '../../../services/language_service.dart';
 
 class SummaryData {
   final String ovNO;
@@ -123,26 +124,26 @@ class HistoryTable extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                           child: Row(
                             children: [
-                              Text('Lệnh : ${summary.ovNO}', style: summaryStyle),
+                              Text('${LanguageService().translate('order')} : ${summary.ovNO}', style: summaryStyle),
                               const Spacer(flex: 1),
-                              Text('Số mẻ: ${summary.xWeighed} / ${summary.yTotal}', style: summaryStyle),
+                              Text('${LanguageService().translate('batch_count')}: ${summary.xWeighed} / ${summary.yTotal}', style: summaryStyle),
                               const Spacer(flex: 1),
                               // Dùng dữ liệu thật
                               Text(
-                                'Nhập: ${summary.totalNhap.toStringAsFixed(3)} / ${summary.totalTargetQty.toStringAsFixed(3)} kg', 
+                                '${LanguageService().translate('import_weight')}: ${summary.totalNhap.toStringAsFixed(3)} / ${summary.totalTargetQty.toStringAsFixed(3)} kg', 
                                 style: summaryStyle
                               ),
                               const Spacer(flex: 1),
                               // Dùng dữ liệu thật
                               Text(
-                                'Xuất: ${summary.totalXuat.toStringAsFixed(3)} / ${summary.totalNhap.toStringAsFixed(3)} kg', 
+                                '${LanguageService().translate('export_weight')}: ${summary.totalXuat.toStringAsFixed(3)} / ${summary.totalNhap.toStringAsFixed(3)} kg', 
                                 style: summaryStyle
                               ),
                               const Spacer(flex: 1),
                               Expanded(
                                 flex: 3,
                                 child: Text(
-                                  'Memo: ${summary.memo ?? ''}',
+                                  '${LanguageService().translate('memo')}: ${summary.memo ?? ''}',
                                   style: summaryStyle,
                                   textAlign: TextAlign.right,
                                   overflow: TextOverflow.ellipsis,

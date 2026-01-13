@@ -546,26 +546,154 @@ class WeighingStationController with ChangeNotifier {
           _records.add(newRecord);
         }
       } else {
-        // Nếu không có 'codes', giữ lại logic cũ (tương thích ngược - offline)
-        // Lấy qtys từ data để tính Min/Max
-        _standardWeight = (data['qtys'] as num? ?? 0.0).toDouble();
-        _calculateMinMax();
+        // OFFLINE: Query tất cả mã cùng OVNO từ cache local
+        final String? ovNO = data['ovNO'];
+        
+        if (ovNO != null && ovNO.isNotEmpty) {
+          // Query tất cả mã cùng OVNO
+          final List<Map<String, dynamic>> allCodesInOVNO = await db.rawQuery(
+            '''
+              SELECT S.maCode, S.ovNO, S.package, S.mUserID, S.qtys,
+                S.realQty, S.loai, S.weighedNhapAmount, S.weighedXuatAmount, S.mixTime,
+                W.tenPhoiKeo, W.soMay, W.memo, W.totalTargetQty,
+                P.nguoiThaoTac, S.package as soLo
+              FROM VmlWorkS AS S
+              LEFT JOIN VmlWork AS W ON S.ovNO = W.ovNO
+              LEFT JOIN VmlPersion AS P ON S.mUserID = P.mUserID
+              WHERE S.ovNO = ?
+              ORDER BY S.package ASC
+            ''',
+            [ovNO],
+          );
 
-        final newRecord = WeighingRecord(
-          maCode: data['maCode'] ?? '',
-          ovNO: data['ovNO'] ?? '',
-          package: (data['package'] as num? ?? 0).toInt(),
-          mUserID: (data['mUserID'] ?? '').toString(),
-          qtys: (data['qtys'] as num? ?? 0.0).toDouble(),
-          soLo: (data['soLo'] as num? ?? 0).toInt(),
-          tenPhoiKeo: data['tenPhoiKeo'],
-          soMay: (data['soMay'] ?? '').toString(),
-          nguoiThaoTac: data['nguoiThaoTac'],
-          // Sử dụng giá trị đã tính từ VmlWorkS + HistoryQueue
-          weighedNhapAmount: _weighedNhapAmount,
-          weighedXuatAmount: _weighedXuatAmount,
-        );
-        _records.add(newRecord);
+          if (allCodesInOVNO.isNotEmpty) {
+            // Tính tổng hợp cho OVNO
+            double totalNhapWeighed = 0.0;
+            double totalXuatWeighed = 0.0;
+            int countWeighedNhap = 0;
+            int totalPackages = allCodesInOVNO.length;
+
+            // Tìm qtys của mã được scan
+            double scannedQtys = 0.0;
+            
+            for (var codeData in allCodesInOVNO) {
+              final String codeInList = codeData['maCode'] ?? '';
+              final double cachedNhap = (codeData['weighedNhapAmount'] as num? ?? 0.0).toDouble();
+              final double cachedXuat = (codeData['weighedXuatAmount'] as num? ?? 0.0).toDouble();
+
+              // Lấy thêm từ HistoryQueue cho từng mã
+              final nhapQueue = await db.query(
+                'HistoryQueue',
+                where: 'maCode = ? AND loai = ?',
+                whereArgs: [codeInList, 'nhap'],
+              );
+              final xuatQueue = await db.query(
+                'HistoryQueue',
+                where: 'maCode = ? AND loai = ?',
+                whereArgs: [codeInList, 'xuat'],
+              );
+
+              double queueNhap = 0.0;
+              double queueXuat = 0.0;
+              for (var row in nhapQueue) {
+                queueNhap += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
+              }
+              for (var row in xuatQueue) {
+                queueXuat += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
+              }
+
+              final double totalNhap = cachedNhap + queueNhap;
+              final double totalXuat = cachedXuat + queueXuat;
+
+              totalNhapWeighed += totalNhap;
+              totalXuatWeighed += totalXuat;
+              
+              if (totalNhap > 0) {
+                countWeighedNhap++;
+              }
+
+              // Nếu là mã được scan, lưu qtys
+              if (codeInList == code) {
+                scannedQtys = (codeData['qtys'] as num? ?? 0.0).toDouble();
+              }
+
+              // Parse mixTime
+              DateTime? mixTime;
+              if (codeData['mixTime'] != null) {
+                try {
+                  mixTime = DateTime.parse(codeData['mixTime'].toString());
+                } catch (e) {
+                  if (kDebugMode) print('⚠️ Lỗi parse mixTime: $e');
+                }
+              }
+
+              // Thêm record
+              final newRecord = WeighingRecord(
+                maCode: codeInList,
+                ovNO: codeData['ovNO'] ?? '',
+                package: (codeData['package'] as num? ?? 0).toInt(),
+                mUserID: (codeData['mUserID'] ?? '').toString(),
+                qtys: (codeData['qtys'] as num? ?? 0.0).toDouble(),
+                soLo: (codeData['soLo'] as num? ?? 0).toInt(),
+                tenPhoiKeo: codeData['tenPhoiKeo'],
+                soMay: (codeData['soMay'] ?? '').toString(),
+                nguoiThaoTac: codeData['nguoiThaoTac'],
+                weighedNhapAmount: totalNhap,
+                weighedXuatAmount: totalXuat,
+                mixTime: mixTime,
+              );
+              _records.add(newRecord);
+            }
+
+            // Cập nhật các biến tổng hợp
+            _activeTotalNhap = totalNhapWeighed;
+            _activeTotalXuat = totalXuatWeighed;
+            _activeXWeighed = countWeighedNhap;
+            _activeYTotal = totalPackages;
+            
+            // Cập nhật Min/Max cho mã được scan
+            _standardWeight = scannedQtys;
+            _calculateMinMax();
+          } else {
+            // Không tìm thấy mã nào cùng OVNO, tạo record đơn lẻ
+            _standardWeight = (data['qtys'] as num? ?? 0.0).toDouble();
+            _calculateMinMax();
+
+            final newRecord = WeighingRecord(
+              maCode: data['maCode'] ?? '',
+              ovNO: data['ovNO'] ?? '',
+              package: (data['package'] as num? ?? 0).toInt(),
+              mUserID: (data['mUserID'] ?? '').toString(),
+              qtys: (data['qtys'] as num? ?? 0.0).toDouble(),
+              soLo: (data['soLo'] as num? ?? 0).toInt(),
+              tenPhoiKeo: data['tenPhoiKeo'],
+              soMay: (data['soMay'] ?? '').toString(),
+              nguoiThaoTac: data['nguoiThaoTac'],
+              weighedNhapAmount: _weighedNhapAmount,
+              weighedXuatAmount: _weighedXuatAmount,
+            );
+            _records.add(newRecord);
+          }
+        } else {
+          // Mã chưa có OVNO (mã mới offline), tạo record đơn lẻ
+          _standardWeight = (data['qtys'] as num? ?? 0.0).toDouble();
+          _calculateMinMax();
+
+          final newRecord = WeighingRecord(
+            maCode: data['maCode'] ?? '',
+            ovNO: data['ovNO'] ?? '',
+            package: (data['package'] as num? ?? 0).toInt(),
+            mUserID: (data['mUserID'] ?? '').toString(),
+            qtys: (data['qtys'] as num? ?? 0.0).toDouble(),
+            soLo: (data['soLo'] as num? ?? 0).toInt(),
+            tenPhoiKeo: data['tenPhoiKeo'],
+            soMay: (data['soMay'] ?? '').toString(),
+            nguoiThaoTac: data['nguoiThaoTac'],
+            weighedNhapAmount: _weighedNhapAmount,
+            weighedXuatAmount: _weighedXuatAmount,
+          );
+          _records.add(newRecord);
+        }
       }
 
       // Reset monitor cho mã mới

@@ -181,6 +181,29 @@ class LanguageService extends ChangeNotifier {
       'scan_success': 'Scan mã thành công!\nLoại:',
       'please_scan_to_weigh': 'Vui lòng scan mã để cân!',
       'connection_lost': 'Đã mất kết nối với cân Bluetooth!',
+      
+      // Notification Titles
+      'notification_success': 'Thành công',
+      'notification_error': 'Đã xảy ra lỗi',
+      'notification_info': 'Thông báo',
+      
+      // Table Labels
+      'order': 'Lệnh',
+      'batches_weighed': 'Số mẻ đã cân',
+      'import_weight': 'Nhập',
+      'export_weight': 'Xuất',
+      'memo': 'Memo',
+      'batch_count': 'Số mẻ',
+      
+      // Weighing Table Headers
+      'glue_name': 'Tên Phôi Keo',
+      'batch_number': 'Số Mẻ',
+      'machine_number': 'Số Máy',
+      'operator': 'Người Thao Tác',
+      'weighing_time': 'Thời Gian Cân',
+      'batch_weight': 'Khối Lượng Mẻ (kg)',
+      'import_weighed': 'Khối Lượng Đã Cân Nhập (kg)',
+      'export_weighed': 'Khối Lượng Đã Cân Xuất (kg)',
     },
     'en': {
       // Login Screen
@@ -328,6 +351,29 @@ class LanguageService extends ChangeNotifier {
       'scan_success': 'Scan successful!\nType:',
       'please_scan_to_weigh': 'Please scan code to weigh!',
       'connection_lost': 'Bluetooth scale connection lost!',
+      
+      // Notification Titles
+      'notification_success': 'Success',
+      'notification_error': 'Error',
+      'notification_info': 'Information',
+      
+      // Table Labels
+      'order': 'Order',
+      'batches_weighed': 'Batches Weighed',
+      'import_weight': 'Import',
+      'export_weight': 'Export',
+      'memo': 'Memo',
+      'batch_count': 'Batch Count',
+      
+      // Weighing Table Headers
+      'glue_name': 'Glue Name',
+      'batch_number': 'Batch No.',
+      'machine_number': 'Machine No.',
+      'operator': 'Operator',
+      'weighing_time': 'Weighing Time',
+      'batch_weight': 'Batch Weight (kg)',
+      'import_weighed': 'Imported Weight (kg)',
+      'export_weighed': 'Exported Weight (kg)',
     },
   };
 }

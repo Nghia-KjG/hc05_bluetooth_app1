@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -26,6 +27,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _soTheController = TextEditingController();
   String _selectedFactory = 'LHG';
   bool _isLoading = false;
+  String? _userRole; // Lưu role của user
+  bool _isCheckingRole = false; // Đang kiểm tra role
+  Timer? _debounceTimer; // Timer cho debounce
 
   // Địa chỉ server nội bộ
 
@@ -57,7 +61,75 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _soTheController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  // ===== HÀM KIỂM TRA ROLE =====
+  Future<void> _checkUserRole(String soThe) async {
+    if (soThe.isEmpty) {
+      setState(() {
+        _userRole = null;
+        _isCheckingRole = false;
+      });
+      return;
+    }
+
+    setState(() => _isCheckingRole = true);
+
+    try {
+      // Kiểm tra kết nối mạng
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final bool isOnline =
+          connectivityResult.contains(ConnectivityResult.wifi) ||
+          connectivityResult.contains(ConnectivityResult.mobile);
+
+      if (!isOnline) {
+        // Offline: Ẩn factory dropdown
+        setState(() {
+          _userRole = 'user';
+          _isCheckingRole = false;
+        });
+        return;
+      }
+
+      // Gọi API để check role
+      final url = Uri.parse('${dotenv.env['API_BASE_URL']}/api/auth/check-role');
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({'userID': soThe}),
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final role = data['role'] as String?;
+        setState(() {
+          _userRole = role ?? 'user';
+          _isCheckingRole = false;
+        });
+        if (kDebugMode) print('✅ Role của user $soThe: $_userRole');
+      } else {
+        // Nếu API lỗi, mặc định là user (ẩn factory)
+        setState(() {
+          _userRole = 'user';
+          _isCheckingRole = false;
+        });
+      }
+    } catch (e) {
+      // Lỗi kết nối: Mặc định là user
+      if (kDebugMode) print('⚠️ Lỗi kiểm tra role: $e');
+      if (mounted) {
+        setState(() {
+          _userRole = 'user';
+          _isCheckingRole = false;
+        });
+      }
+    }
   }
 
   // ===== HÀM ĐĂNG NHẬP =====
@@ -107,6 +179,11 @@ class _LoginScreenState extends State<LoginScreen> {
             // API THÀNH CÔNG
             userName = data['userData']['UserName'] as String;
             successMessage = data['message'];
+            // Lưu role nếu có
+            final role = data['userData']['Role'] as String?;
+            if (role != null) {
+              setState(() => _userRole = role);
+            }
 
             // Đồng bộ danh sách người dùng từ /api/sync/persons (cho offline login)
             await _syncPersonsForOfflineLogin();
@@ -243,20 +320,26 @@ class _LoginScreenState extends State<LoginScreen> {
   // ===== GIAO DIỆN =====
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFB0D9F3),
-      body: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height,
-          ),
-          child: Center(
-            child: LayoutBuilder(
-              builder:
-                  (context, constraints) =>
-                      constraints.maxWidth > 800
-                          ? _buildWideLayout()
-                          : _buildNarrowLayout(),
+    return GestureDetector(
+      onTap: () {
+        // Ẩn bàn phím khi tap ra ngoài
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFB0D9F3),
+        body: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height,
+            ),
+            child: Center(
+              child: LayoutBuilder(
+                builder:
+                    (context, constraints) =>
+                        constraints.maxWidth > 800
+                            ? _buildWideLayout()
+                            : _buildNarrowLayout(),
+              ),
             ),
           ),
         ),
@@ -341,38 +424,69 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  suffixIcon: _soTheController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setState(() {
+                              _soTheController.clear();
+                              _userRole = null;
+                            });
+                            _debounceTimer?.cancel();
+                          },
+                        )
+                      : null,
                 ),
-                onSubmitted: (_) => _isLoading ? null : _handleLogin(),
+                onChanged: (value) {
+                  setState(() {}); // Để cập nhật hiển thị nút X
+                  
+                  // Hủy timer cũ
+                  _debounceTimer?.cancel();
+                  
+                  // Tạo timer mới: sau 200ms không thay đổi thì check role
+                  _debounceTimer = Timer(const Duration(milliseconds: 200), () {
+                    _checkUserRole(value.trim());
+                  });
+                },
+                // Khi ấn Enter: ẩn bàn phím và check role
+                onSubmitted: (value) {
+                  FocusScope.of(context).unfocus(); // Ẩn bàn phím
+                  _debounceTimer?.cancel(); // Hủy debounce timer
+                  _checkUserRole(value.trim()); // Check role ngay lập tức
+                },
               ),
-              const SizedBox(height: 20),
-              Text(
-                lang.translate('factory'),
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonHideUnderline(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _selectedFactory,
-                  icon: const Icon(Icons.factory_outlined),
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              // Hiển thị factory dropdown nếu role là 'admin'
+              if (_userRole == 'admin') ...[
+                const SizedBox(height: 20),
+                Text(
+                  lang.translate('factory'),
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.bold,
                   ),
-                  items:
-                      ['LHG', 'LYV', 'LVL', 'LAZ', 'LZS', 'LYM']
-                          .map(
-                            (v) => DropdownMenuItem(value: v, child: Text(v)),
-                          )
-                          .toList(),
-                  onChanged:
-                      (v) => setState(() => _selectedFactory = v ?? 'LHG'),
                 ),
-              ),
+                const SizedBox(height: 8),
+                DropdownButtonHideUnderline(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _selectedFactory,
+                    icon: const Icon(Icons.factory_outlined),
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    items:
+                        ['LHG', 'LYV', 'LVL', 'LAZ', 'LZS', 'LYM']
+                            .map(
+                              (v) => DropdownMenuItem(value: v, child: Text(v)),
+                            )
+                            .toList(),
+                    onChanged:
+                        (v) => setState(() => _selectedFactory = v ?? 'LHG'),
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               Text(
                 lang.translate('language'),

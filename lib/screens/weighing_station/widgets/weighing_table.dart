@@ -68,11 +68,13 @@ class WeighingTable extends StatelessWidget {
     );
 
     // Header động cho cột Khối Lượng Mẻ/Tồn
-    final String khoiLuongMeHeader =
+    final String khoiLuongMeHeader = _languageService.translate('batch_weight');
+
+    // Header động cho cột Khối Lượng Đã Cân
+    final String khoiLuongDaCanHeader =
         (weighingType == WeighingType.nhap)
-            ? 'Khối Lượng Mẻ (kg)'
-            //'Khối Lượng Tồn (kg)' //chưa dùng
-            : 'Khối Lượng Mẻ (kg)';
+            ? _languageService.translate('import_weighed')
+            : _languageService.translate('export_weighed');
 
     return AnimatedBuilder(
       animation: _languageService,
@@ -92,19 +94,19 @@ class WeighingTable extends StatelessWidget {
                 child: IntrinsicHeight(
                   child: Row(
                     children: [
-                      headerCell('Tên Phôi Keo', 3),
+                      headerCell(_languageService.translate('glue_name'), 3),
                       verticalDivider(),
-                      headerCell('Số Mẻ/Lô', 2),
+                      headerCell(_languageService.translate('batch_number'), 2),
                       verticalDivider(),
-                      headerCell('Số Máy', 2),
+                      headerCell(_languageService.translate('machine_number'), 2),
                       verticalDivider(),
-                      headerCell('Người Thao Tác', 3),
+                      headerCell(_languageService.translate('operator'), 3),
                       verticalDivider(),
                       headerCell(khoiLuongMeHeader, 3),
                       verticalDivider(),
-                      headerCell('Khối Lượng Đã Cân Nhập (kg)', 3),
+                      headerCell(khoiLuongDaCanHeader, 3),
                       verticalDivider(),
-                      headerCell('Thời Gian Cân', 3),
+                      headerCell(_languageService.translate('weighing_time'), 3),
                     ],
                   ),
                 ),
@@ -163,12 +165,7 @@ class WeighingTable extends StatelessWidget {
                             ); // Màu xanh lá nếu thành công
                           } else if (index > 0 && record.realQty == null) {
                             // Chưa hoàn tất mà đã scan mã mới (không phải dòng đầu tiên và chưa có realQty)
-                            rowColor = const Color.fromARGB(
-                              255,
-                              255,
-                              205,
-                              210,
-                            ); // Màu đỏ nhạt
+                            rowColor = const Color.fromARGB(255, 248, 244, 187); // Màu đỏ nhạt
                           } else {
                             rowColor =
                                 index.isEven
@@ -191,7 +188,7 @@ class WeighingTable extends StatelessWidget {
                                     3,
                                   ), // FormulaF
                                   dataCell(
-                                    '${record.package}/${record.soLo}',
+                                    '${record.package}/$yTotal',
                                     2,
                                   ), // soLo/package
                                   dataCell(record.soMay, 2), // soMay
@@ -204,15 +201,27 @@ class WeighingTable extends StatelessWidget {
                                     3,
                                   ), // Mẻ/Tồn
                                   // Khối Lượng Đã Cân:
-                                  // - Nếu là mã được scan: hiển thị realQty hoặc '---'
-                                  // - Nếu không phải mã scan: hiển thị weighedNhapAmount
+                                  // - Nếu là mã được scan:
+                                  //   + Cân nhập: hiển thị realQty hoặc '---'
+                                  //   + Cân xuất: hiển thị weighedXuatAmount
+                                  // - Nếu không phải mã scan:
+                                  //   + Cân nhập: hiển thị weighedNhapAmount
+                                  //   + Cân xuất: hiển thị weighedXuatAmount
                                   dataCell(
                                     record.maCode == scannedCode
-                                        ? (record.realQty?.toStringAsFixed(3) ??
-                                            '---')
-                                        : (record.weighedNhapAmount
-                                                ?.toStringAsFixed(3) ??
-                                            '---'),
+                                        ? (weighingType == WeighingType.nhap
+                                            ? (record.realQty?.toStringAsFixed(3) ??
+                                                '---')
+                                            : (record.weighedXuatAmount
+                                                    ?.toStringAsFixed(3) ??
+                                                '---'))
+                                        : (weighingType == WeighingType.nhap
+                                            ? (record.weighedNhapAmount
+                                                    ?.toStringAsFixed(3) ??
+                                                '---')
+                                            : (record.weighedXuatAmount
+                                                    ?.toStringAsFixed(3) ??
+                                                '---')),
                                     3,
                                   ), // Đã Cân
                                   Builder(
@@ -262,31 +271,31 @@ class WeighingTable extends StatelessWidget {
               // --- DÒNG TÓM TẮT ---
               if (activeOVNO != null)
                 Container(
-                  color: const Color.fromARGB(255, 247, 220, 72),
+                  color: const Color.fromARGB(255, 72, 183, 247),
                   padding: const EdgeInsets.symmetric(
                     vertical: 8.0,
                     horizontal: 16.0,
                   ),
                   child: Row(
                     children: [
-                      Text('Lệnh : $activeOVNO', style: summaryStyle),
+                      Text('${_languageService.translate('order')} : $activeOVNO', style: summaryStyle),
                       const Spacer(flex: 1),
                       Text(
-                        'Số mẻ đã cân: $xWeighed / $yTotal',
+                        '${_languageService.translate('batches_weighed')}: $xWeighed / $yTotal',
                         style: summaryStyle,
                       ),
                       const Spacer(flex: 1),
 
-                      // Sửa 'Nhập'
+                      // Import weight
                       Text(
-                        'Nhập: ${totalNhap.toStringAsFixed(3)} / ${totalTargetQty.toStringAsFixed(3)} kg',
+                        '${_languageService.translate('import_weight')}: ${totalNhap.toStringAsFixed(3)} / ${totalTargetQty.toStringAsFixed(3)} kg',
                         style: summaryStyle,
                       ),
                       const Spacer(flex: 1),
 
-                      // Sửa 'Xuất'
+                      // Export weight
                       Text(
-                        'Xuất: ${totalXuat.toStringAsFixed(3)} / ${totalNhap.toStringAsFixed(3)} kg',
+                        '${_languageService.translate('export_weight')}: ${totalXuat.toStringAsFixed(3)} / ${totalNhap.toStringAsFixed(3)} kg',
                         style: summaryStyle,
                       ),
                       const Spacer(flex: 1),
@@ -294,7 +303,7 @@ class WeighingTable extends StatelessWidget {
                       Expanded(
                         flex: 3,
                         child: Text(
-                          'Memo: ${activeMemo ?? ''}',
+                          '${_languageService.translate('memo')}: ${activeMemo ?? ''}',
                           style: summaryStyle,
                           textAlign: TextAlign.right,
                           overflow: TextOverflow.ellipsis,

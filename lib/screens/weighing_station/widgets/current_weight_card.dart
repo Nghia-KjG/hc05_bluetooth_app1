@@ -73,7 +73,7 @@ class CurrentWeightCard extends StatefulWidget {
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.black54)),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

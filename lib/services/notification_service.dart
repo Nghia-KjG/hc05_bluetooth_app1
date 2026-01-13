@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'language_service.dart';
 
 enum ToastType { success, error, info }
 
@@ -45,21 +46,23 @@ class NotificationService {
 
     const Color textColor = Colors.white;
 
+    final langService = LanguageService();
+    
     switch (type) {
       case ToastType.success:
         iconData = Icons.check_circle_outline;
         backgroundColor = Colors.green.shade600;
-        title = 'Thành công';
+        title = langService.translate('notification_success');
         break;
       case ToastType.error:
         iconData = Icons.error_outline;
         backgroundColor = Colors.red.shade600;
-        title = 'Đã xảy ra lỗi';
+        title = langService.translate('notification_error');
         break;
       case ToastType.info:
       iconData = Icons.info_outline;
        backgroundColor = Colors.blue.shade600;
-        title = 'Thông báo';
+        title = langService.translate('notification_info');
         break;
     }
 

@@ -280,7 +280,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
     final bool isNhap = _controller.selectedWeighingType == WeighingType.nhap;
     final Color pageBackgroundColor =
         isNhap
-            ? const Color.fromARGB(133, 219, 158, 43) // Xanh lá nhạt cho Nhập
+            ? const Color.fromARGB(133, 196, 136, 24) // Xanh lá nhạt cho Nhập
             : const Color.fromARGB(
               255,
               112,
@@ -302,8 +302,8 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: 24.0,
-              vertical: 12.0,
+              horizontal: 16.0,
+              vertical: 8.0,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +346,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -366,13 +366,13 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                         weighedXuatAmount: _controller.weighedXuatAmount,
                       ),
                     ),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 16),
                     // Cột bên phải
                     Expanded(
                       flex: 3,
                       child: Column(
                         children: [
-                          const SizedBox(height: 5),
+                          const SizedBox(height: 2),
                           Row(
                             children: [
                               ActionBar(
@@ -385,7 +385,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                               _buildWeighingTypeDropdown(),
                             ],
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
                           ScanInputField(
                             controller: _scanTextController,
                             focusNode: _scanFocusNode,
@@ -401,7 +401,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                               );
                             },
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
                           // === KHU VỰC TEST (Chỉ dùng khi dev) ===
                           if (kDebugMode) ...[
                             Container(
@@ -463,7 +463,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 12),
                           ],
                           ValueListenableBuilder<double>(
                             valueListenable: _bluetoothService.currentWeight,
@@ -546,7 +546,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 WeighingTable(
                   records: _controller.records,
                   weighingType: _controller.selectedWeighingType,
@@ -559,7 +559,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                   xWeighed: _controller.activeXWeighed,
                   yTotal: _controller.activeYTotal,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
               ],
             ),
           ),
