@@ -20,7 +20,7 @@ class DatabaseHelper {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "weighing_app.db");
 
-    return await openDatabase(path, version: 5, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: 6, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future _onCreate(Database db, int version) async {
@@ -33,7 +33,9 @@ class DatabaseHelper {
         qtys REAL,
         realQty REAL,
         mixTime TEXT,
-        loai TEXT
+        loai TEXT,
+        weighedNhapAmount REAL DEFAULT 0,
+        weighedXuatAmount REAL DEFAULT 0
       )
     ''');
 
@@ -141,6 +143,12 @@ class DatabaseHelper {
       // Thêm cột WUserID vào HistoryQueue và FailedSyncs nếu chưa có
       await db.execute('ALTER TABLE HistoryQueue ADD COLUMN WUserID TEXT');
       await db.execute('ALTER TABLE FailedSyncs ADD COLUMN WUserID TEXT');
+    }
+
+    if (oldVersion < 6) {
+      // Thêm cột weighedNhapAmount và weighedXuatAmount vào VmlWorkS
+      await db.execute('ALTER TABLE VmlWorkS ADD COLUMN weighedNhapAmount REAL DEFAULT 0');
+      await db.execute('ALTER TABLE VmlWorkS ADD COLUMN weighedXuatAmount REAL DEFAULT 0');
     }
   }
 

@@ -173,6 +173,8 @@ class SyncService {
           'realQty': item['realQty'],
           'mixTime': item['mixTime'],
           'loai': inferredLoai,
+          'weighedNhapAmount': item['weighedNhapAmount'] ?? 0.0,
+          'weighedXuatAmount': item['weighedXuatAmount'] ?? 0.0,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
         
         // Thêm vào VmlWork

@@ -510,8 +510,9 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                                       Future.delayed(
                                         const Duration(milliseconds: 100),
                                         () {
-                                          if (mounted)
+                                          if (mounted) {
                                             _scanFocusNode.requestFocus();
+                                          }
                                         },
                                       );
                                     }
