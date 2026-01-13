@@ -20,7 +20,12 @@ class DatabaseHelper {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "weighing_app.db");
 
-    return await openDatabase(path, version: 7, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(
+      path,
+      version: 8,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future _onCreate(Database db, int version) async {
@@ -88,6 +93,26 @@ class DatabaseHelper {
         name TEXT
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE WeighingState (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        activeOVNO TEXT,
+        activeMemo TEXT,
+        scannedCode TEXT,
+        activeTotalTargetQty REAL,
+        activeTotalNhap REAL,
+        activeTotalXuat REAL,
+        activeXWeighed INTEGER,
+        activeYTotal INTEGER,
+        weighedNhapAmount REAL,
+        weighedXuatAmount REAL,
+        selectedPercentage REAL,
+        standardWeight REAL,
+        selectedWeighingType INTEGER,
+        timestamp TEXT
+      )
+    ''');
   }
 
   /// Cập nhật bảng VmlPersion từ danh sách người dùng từ API/Sync
@@ -150,21 +175,49 @@ class DatabaseHelper {
 
     if (oldVersion < 6) {
       // Thêm cột weighedNhapAmount và weighedXuatAmount vào VmlWorkS
-      await db.execute('ALTER TABLE VmlWorkS ADD COLUMN weighedNhapAmount REAL DEFAULT 0');
-      await db.execute('ALTER TABLE VmlWorkS ADD COLUMN weighedXuatAmount REAL DEFAULT 0');
+      await db.execute(
+        'ALTER TABLE VmlWorkS ADD COLUMN weighedNhapAmount REAL DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE VmlWorkS ADD COLUMN weighedXuatAmount REAL DEFAULT 0',
+      );
     }
-    
+
     if (oldVersion < 7) {
       // Thêm cột device vào HistoryQueue và FailedSyncs
       await db.execute('ALTER TABLE HistoryQueue ADD COLUMN device TEXT');
       await db.execute('ALTER TABLE FailedSyncs ADD COLUMN device TEXT');
+    }
+
+    if (oldVersion < 8) {
+      // Tạo bảng WeighingState để lưu trạng thái màn hình cân
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS WeighingState (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          activeOVNO TEXT,
+          activeMemo TEXT,
+          scannedCode TEXT,
+          activeTotalTargetQty REAL,
+          activeTotalNhap REAL,
+          activeTotalXuat REAL,
+          activeXWeighed INTEGER,
+          activeYTotal INTEGER,
+          weighedNhapAmount REAL,
+          weighedXuatAmount REAL,
+          selectedPercentage REAL,
+          standardWeight REAL,
+          selectedWeighingType INTEGER,
+          timestamp TEXT
+        )
+      ''');
     }
   }
 
   /// Lấy thông tin chi tiết của 1 mã code
   Future<Map<String, dynamic>?> getCodeInfo(String maCode) async {
     final db = await database;
-    final result = await db.rawQuery('''
+    final result = await db.rawQuery(
+      '''
       SELECT S.maCode, S.ovNO, S.package, S.mUserID, S.qtys,
              S.realQty, S.mixTime, S.loai,
              W.tenPhoiKeo, W.soMay, W.memo, W.totalTargetQty,
@@ -173,7 +226,9 @@ class DatabaseHelper {
       LEFT JOIN VmlWork AS W ON S.ovNO = W.ovNO
       LEFT JOIN VmlPersion AS P ON S.mUserID = P.mUserID
       WHERE S.maCode = ?
-    ''', [maCode]);
+    ''',
+      [maCode],
+    );
 
     if (result.isNotEmpty) return result.first;
     return null;
@@ -239,17 +294,25 @@ class DatabaseHelper {
   /// Cập nhật message/failedAt cho bản ghi FailedSync (khi retry thất bại)
   Future<void> updateFailedSyncError(int id, String errorMessage) async {
     final db = await database;
-    await db.update('FailedSyncs', {
-      'errorMessage': errorMessage,
-      'failedAt': DateTime.now().toIso8601String(),
-    }, where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'FailedSyncs',
+      {
+        'errorMessage': errorMessage,
+        'failedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   /// Kiểm tra xem mã đã cân nhập chưa (offline)
   Future<bool> isCodeAlreadyNhap(String maCode) async {
     final db = await database;
-    final result = await db.query('VmlWorkS',
-        where: 'maCode = ? AND loai = ?', whereArgs: [maCode, 'nhap']);
+    final result = await db.query(
+      'VmlWorkS',
+      where: 'maCode = ? AND loai = ?',
+      whereArgs: [maCode, 'nhap'],
+    );
     return result.isNotEmpty;
   }
 
@@ -265,11 +328,10 @@ class DatabaseHelper {
       final String? name = device['name']?.toString();
       if (address == null || address.isEmpty) continue;
 
-      batch.insert(
-        'Devices',
-        {'address': address, 'name': name ?? 'N/A'},
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      batch.insert('Devices', {
+        'address': address,
+        'name': name ?? 'N/A',
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
 
     await batch.commit(noResult: true);

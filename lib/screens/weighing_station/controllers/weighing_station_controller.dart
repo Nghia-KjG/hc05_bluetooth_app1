@@ -83,7 +83,10 @@ class WeighingStationController with ChangeNotifier {
   /// Callback để thông báo UI (ví dụ: clear scan field) khi auto-complete hoàn tất
   VoidCallback? onAutoComplete;
 
-  WeighingStationController({required this.bluetoothService});
+  WeighingStationController({required this.bluetoothService}) {
+    // Khôi phục state khi khởi tạo controller
+    restoreState();
+  }
 
   // --- HÀM TÍNH TOÁN ---
   void _calculateMinMax() {
@@ -120,7 +123,7 @@ class WeighingStationController with ChangeNotifier {
     _calculateMinMax();
     notifyListeners();
   }
-  
+
   /// Lấy tên cân hiện tại (device name)
   String? getConnectedDeviceName() {
     final device = bluetoothService.connectedDevice.value;
@@ -222,6 +225,14 @@ class WeighingStationController with ChangeNotifier {
 
   // --- HÀM XỬ LÝ SCAN ---
   Future<void> handleScan(BuildContext context, String code) async {
+    // Xóa state cũ khi scan mã mới (khác với mã hiện tại)
+    if (_scannedCode != null && _scannedCode != code) {
+      await clearSavedState();
+      if (kDebugMode) {
+        print('🔄 Scan mã mới: Xóa state cũ ($_scannedCode → $code)');
+      }
+    }
+
     Map<String, dynamic> data;
     final db = await _dbHelper.database;
 
@@ -554,7 +565,7 @@ class WeighingStationController with ChangeNotifier {
       } else {
         // OFFLINE: Query tất cả mã cùng OVNO từ cache local
         final String? ovNO = data['ovNO'];
-        
+
         if (ovNO != null && ovNO.isNotEmpty) {
           // Query tất cả mã cùng OVNO
           final List<Map<String, dynamic>> allCodesInOVNO = await db.rawQuery(
@@ -581,11 +592,13 @@ class WeighingStationController with ChangeNotifier {
 
             // Tìm qtys của mã được scan
             double scannedQtys = 0.0;
-            
+
             for (var codeData in allCodesInOVNO) {
               final String codeInList = codeData['maCode'] ?? '';
-              final double cachedNhap = (codeData['weighedNhapAmount'] as num? ?? 0.0).toDouble();
-              final double cachedXuat = (codeData['weighedXuatAmount'] as num? ?? 0.0).toDouble();
+              final double cachedNhap =
+                  (codeData['weighedNhapAmount'] as num? ?? 0.0).toDouble();
+              final double cachedXuat =
+                  (codeData['weighedXuatAmount'] as num? ?? 0.0).toDouble();
 
               // Lấy thêm từ HistoryQueue cho từng mã
               final nhapQueue = await db.query(
@@ -613,7 +626,7 @@ class WeighingStationController with ChangeNotifier {
 
               totalNhapWeighed += totalNhap;
               totalXuatWeighed += totalXuat;
-              
+
               if (totalNhap > 0) {
                 countWeighedNhap++;
               }
@@ -656,7 +669,7 @@ class WeighingStationController with ChangeNotifier {
             _activeTotalXuat = totalXuatWeighed;
             _activeXWeighed = countWeighedNhap;
             _activeYTotal = totalPackages;
-            
+
             // Cập nhật Min/Max cho mã được scan
             _standardWeight = scannedQtys;
             _calculateMinMax();
@@ -1139,8 +1152,187 @@ class WeighingStationController with ChangeNotifier {
     onAutoComplete = null;
   }
 
+  // === LƯU VÀ KHÔI PHỤC STATE ===
+  /// Lưu state hiện tại vào database để giữ lại khi thoát trang
+  Future<void> saveState() async {
+    try {
+      final db = await _dbHelper.database;
+
+      // Xóa state cũ
+      await db.delete('WeighingState');
+
+      // Lưu state mới
+      await db.insert('WeighingState', {
+        'activeOVNO': _activeOVNO,
+        'activeMemo': _activeMemo,
+        'scannedCode': _scannedCode,
+        'activeTotalTargetQty': _activeTotalTargetQty,
+        'activeTotalNhap': _activeTotalNhap,
+        'activeTotalXuat': _activeTotalXuat,
+        'activeXWeighed': _activeXWeighed,
+        'activeYTotal': _activeYTotal,
+        'weighedNhapAmount': _weighedNhapAmount,
+        'weighedXuatAmount': _weighedXuatAmount,
+        'selectedPercentage': _selectedPercentage,
+        'standardWeight': _standardWeight,
+        'selectedWeighingType': _selectedWeighingType.index,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      if (kDebugMode) {
+        print('💾 Đã lưu state: OVNO=$_activeOVNO, ScannedCode=$_scannedCode');
+      }
+    } catch (e) {
+      if (kDebugMode) print('❌ Lỗi lưu state: $e');
+    }
+  }
+
+  /// Khôi phục state từ database khi vào lại trang
+  Future<void> restoreState() async {
+    try {
+      final db = await _dbHelper.database;
+
+      // Lấy state đã lưu
+      final List<Map<String, dynamic>> result = await db.query(
+        'WeighingState',
+        limit: 1,
+      );
+
+      if (result.isEmpty) {
+        if (kDebugMode) print('ℹ️ Không có state để khôi phục');
+        return;
+      }
+
+      final state = result.first;
+
+      // Khôi phục các giá trị
+      _activeOVNO = state['activeOVNO'] as String?;
+      _activeMemo = state['activeMemo'] as String?;
+      _scannedCode = state['scannedCode'] as String?;
+      _activeTotalTargetQty =
+          (state['activeTotalTargetQty'] as num?)?.toDouble() ?? 0.0;
+      _activeTotalNhap = (state['activeTotalNhap'] as num?)?.toDouble() ?? 0.0;
+      _activeTotalXuat = (state['activeTotalXuat'] as num?)?.toDouble() ?? 0.0;
+      _activeXWeighed = (state['activeXWeighed'] as num?)?.toInt() ?? 0;
+      _activeYTotal = (state['activeYTotal'] as num?)?.toInt() ?? 0;
+      _weighedNhapAmount =
+          (state['weighedNhapAmount'] as num?)?.toDouble() ?? 0.0;
+      _weighedXuatAmount =
+          (state['weighedXuatAmount'] as num?)?.toDouble() ?? 0.0;
+      _selectedPercentage =
+          (state['selectedPercentage'] as num?)?.toDouble() ?? 1.0;
+      _standardWeight = (state['standardWeight'] as num?)?.toDouble() ?? 0.0;
+
+      final weighingTypeIndex =
+          (state['selectedWeighingType'] as num?)?.toInt() ?? 0;
+      _selectedWeighingType = WeighingType.values[weighingTypeIndex];
+
+      // Khôi phục danh sách records nếu có scannedCode
+      if (_scannedCode != null && _activeOVNO != null) {
+        await _restoreRecords(db);
+      }
+
+      _calculateMinMax();
+
+      if (kDebugMode) {
+        print(
+          '✅ Đã khôi phục state: OVNO=$_activeOVNO, ScannedCode=$_scannedCode',
+        );
+      }
+
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print('❌ Lỗi khôi phục state: $e');
+    }
+  }
+
+  /// Khôi phục danh sách records từ cache
+  Future<void> _restoreRecords(Database db) async {
+    try {
+      _records.clear();
+
+      // Query tất cả mã cùng OVNO từ VmlWorkS
+      final List<Map<String, dynamic>> allCodesInOVNO = await db.rawQuery(
+        '''
+          SELECT S.maCode, S.ovNO, S.package, S.mUserID, S.qtys,
+            S.realQty, S.loai, S.weighedNhapAmount, S.weighedXuatAmount,
+            W.tenPhoiKeo, W.soMay, W.memo,
+            P.nguoiThaoTac, S.package as soLo
+          FROM VmlWorkS AS S
+          LEFT JOIN VmlWork AS W ON S.ovNO = W.ovNO
+          LEFT JOIN VmlPersion AS P ON S.mUserID = P.mUserID
+          WHERE S.ovNO = ?
+          ORDER BY S.package ASC
+        ''',
+        [_activeOVNO],
+      );
+
+      for (var codeData in allCodesInOVNO) {
+        // Parse mixTime nếu có
+        DateTime? mixTime;
+        if (codeData['mixTime'] != null) {
+          try {
+            mixTime = DateTime.parse(codeData['mixTime'].toString());
+          } catch (e) {
+            // Ignore parse error
+          }
+        }
+
+        final newRecord = WeighingRecord(
+          maCode: codeData['maCode'] ?? '',
+          ovNO: codeData['ovNO'] ?? '',
+          package: (codeData['package'] as num? ?? 0).toInt(),
+          mUserID: (codeData['mUserID'] ?? '').toString(),
+          qtys: (codeData['qtys'] as num? ?? 0.0).toDouble(),
+          soLo: (codeData['soLo'] as num? ?? 0).toInt(),
+          tenPhoiKeo: codeData['tenPhoiKeo'],
+          soMay: (codeData['soMay'] ?? '').toString(),
+          nguoiThaoTac: codeData['nguoiThaoTac'],
+          weighedNhapAmount:
+              (codeData['weighedNhapAmount'] as num? ?? 0.0).toDouble(),
+          weighedXuatAmount:
+              (codeData['weighedXuatAmount'] as num? ?? 0.0).toDouble(),
+          mixTime: mixTime,
+        );
+
+        // Đánh dấu isSuccess nếu mã đã có realQty
+        if (codeData['realQty'] != null) {
+          newRecord.isSuccess = true;
+          newRecord.realQty = (codeData['realQty'] as num).toDouble();
+          newRecord.loai = codeData['loai']?.toString();
+        }
+
+        _records.add(newRecord);
+      }
+
+      if (kDebugMode) {
+        print(
+          '✅ Đã khôi phục ${_records.length} records cho OVNO=$_activeOVNO',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) print('❌ Lỗi khôi phục records: $e');
+    }
+  }
+
+  /// Xóa state đã lưu (gọi khi scan mã mới hoặc thoát app)
+  Future<void> clearSavedState() async {
+    try {
+      final db = await _dbHelper.database;
+      await db.delete('WeighingState');
+
+      if (kDebugMode) {
+        print('🗑️ Đã xóa state đã lưu');
+      }
+    } catch (e) {
+      if (kDebugMode) print('❌ Lỗi xóa state: $e');
+    }
+  }
+
   @override
   void dispose() {
+    // Lưu state trước khi dispose
+    saveState();
     cancelAutoComplete();
     super.dispose();
   }

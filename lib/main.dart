@@ -12,9 +12,7 @@ import 'screens/pending_sync/pending_sync_screen.dart';
 import 'services/settings_service.dart';
 import 'services/language_service.dart';
 import 'screens/settings/settings_screen.dart';
-//import 'package:path_provider/path_provider.dart';
-//import 'package:path/path.dart';
-//import 'package:sqflite/sqflite.dart';
+import 'services/database_helper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,8 +30,45 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Khi app bị đóng hoàn toàn (paused, detached), xóa state
+    if (state == AppLifecycleState.detached ||
+        state == AppLifecycleState.paused) {
+      _clearWeighingState();
+    }
+  }
+
+  Future<void> _clearWeighingState() async {
+    try {
+      final db = await DatabaseHelper().database;
+      await db.delete('WeighingState');
+    } catch (e) {
+      // Ignore errors when clearing state
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +77,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color.fromARGB(255, 173, 207, 241), // Màu nền
+        scaffoldBackgroundColor: const Color.fromARGB(
+          255,
+          173,
+          207,
+          241,
+        ), // Màu nền
       ),
       debugShowCheckedModeBanner: false,
       initialRoute: '/splash',
