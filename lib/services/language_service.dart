@@ -21,7 +21,7 @@ class LanguageService extends ChangeNotifier {
   // Đổi ngôn ngữ
   Future<void> setLanguage(String languageCode) async {
     if (_currentLanguage == languageCode) return;
-    
+
     _currentLanguage = languageCode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_languageKey, languageCode);
@@ -45,14 +45,15 @@ class LanguageService extends ChangeNotifier {
       'language': 'Ngôn ngữ',
       'vietnamese': 'Tiếng Việt',
       'english': 'English',
-      
+
       // Settings Screen
       'settings': 'Cài đặt',
       'general_settings': 'Cài đặt chung',
       'auto_complete': 'Tự động hoàn tất',
       'auto_complete_desc': 'Bật tự động hoàn tất',
       'stability_threshold': 'Ngưỡng ổn định',
-      'stability_threshold_desc': 'Số lần đọc liên tiếp cần để xác nhận ổn định',
+      'stability_threshold_desc':
+          'Số lần đọc liên tiếp cần để xác nhận ổn định',
       'sound_enabled': 'Bật âm thanh',
       'sound_enabled_desc': 'Phát tiếng bíp khi cân thành công',
       'history_range': 'Lịch sử cân',
@@ -71,7 +72,7 @@ class LanguageService extends ChangeNotifier {
       '3_seconds': '3 giây',
       '5_seconds': '5 giây',
       '10_seconds': '10 giây',
-      
+
       // Home Screen
       'weighing_station': 'Trạm cân',
       'dashboard': 'Dash Board',
@@ -79,7 +80,7 @@ class LanguageService extends ChangeNotifier {
       'pending_data': 'Dữ liệu chờ',
       'app_version': 'Weighing Station App - Phiên bản',
       'not_connected': 'Chưa kết nối với cân! Đang chuyển đến trang kết nối...',
-      
+
       // Weighing Station Screen
       'scan_to_display_info': 'Vui lòng scan mã để hiển thị thông tin',
       'current_weight': 'Trọng lượng hiện tại',
@@ -93,15 +94,17 @@ class LanguageService extends ChangeNotifier {
       'complete': 'Hoàn tất',
       'weighing_import': 'Cân Nhập',
       'weighing_export': 'Cân Xuất',
+      'weighing_reweigh': 'Cân Lại',
       'back_to_home': 'Quay lại trang chủ',
       'debug_simulate': '🛠️ DEBUG: Giả lập cân',
       'enter_weight': 'Nhập trọng lượng (kg)',
       'example': 'VD: 50.5',
-      'debug_note': 'Lưu ý: Nhập số xong giữ nguyên, hệ thống sẽ tự bắn data liên tục để kích hoạt "Ổn định".',
-      
+      'debug_note':
+          'Lưu ý: Nhập số xong giữ nguyên, hệ thống sẽ tự bắn data liên tục để kích hoạt "Ổn định".',
+
       // App Bar
       'options': 'Tùy chọn',
-      
+
       // Bluetooth Service
       'ready': 'Sẵn sàng',
       'scanning': 'Đang quét...',
@@ -109,11 +112,11 @@ class LanguageService extends ChangeNotifier {
       'connecting_to': 'Đang kết nối tới',
       'disconnected': 'Đã ngắt kết nối.',
       'event_error': 'Lỗi nhận sự kiện',
-      
+
       // Scan Input Field
       'scan_hint': 'Scan hoặc Nhập mã tại đây...',
       'scan_button': 'Scan',
-      
+
       // History Screen
       'history_title': 'Lịch sử cân',
       'filter_device': 'Thiết bị',
@@ -124,11 +127,11 @@ class LanguageService extends ChangeNotifier {
       'filter_code': 'Mã code',
       'filter_ovno': 'OVNO',
       'search_hint': 'Tìm kiếm...',
-      
+
       // Dashboard Screen
       'dashboard_title': 'Dashboard - Tổng Quan',
       'weight_by_shift': 'Khối Lượng Cân Theo Ca',
-      
+
       // Pending Sync Screen
       'pending_sync_title': 'Dữ liệu cân chờ (Offline)',
       'no_pending_data': 'Không có dữ liệu nào chờ đồng bộ.',
@@ -140,7 +143,8 @@ class LanguageService extends ChangeNotifier {
       'please_wait': 'Vui lòng đợi',
       'sync_complete': 'Đồng bộ hoàn tất!',
       'no_network': 'Không có kết nối mạng. Vui lòng thử lại sau.',
-      'server_error': 'Lỗi kết nối máy chủ. Vui lòng kiểm tra lại mạng và thử lại.',
+      'server_error':
+          'Lỗi kết nối máy chủ. Vui lòng kiểm tra lại mạng và thử lại.',
       'retry_success': 'Đã retry thành công!',
       'retry_failed': 'Retry thất bại hoặc chưa có mạng.',
       'confirm': 'Xác nhận',
@@ -151,7 +155,7 @@ class LanguageService extends ChangeNotifier {
       'code': 'Mã',
       'weighed_by': 'Cân bởi',
       'at_time': 'Lúc',
-      
+
       // Bluetooth Status Action
       'disconnect_tooltip': 'Ngắt kết nối',
       'confirm_disconnect_title': 'Xác nhận ngắt kết nối',
@@ -161,19 +165,20 @@ class LanguageService extends ChangeNotifier {
       'connection_lost_text': 'Mất kết nối cân',
       'reconnect_tooltip': 'Kết nối lại',
       'reconnecting': 'Đang kết nối lại...',
-      'cannot_reconnect': 'Không thể kết nối lại, đang chuyển sang trang kết nối cân.',
-      
+      'cannot_reconnect':
+          'Không thể kết nối lại, đang chuyển sang trang kết nối cân.',
+
       // Charts
       'inventory_overview': 'Tổng Quan Tồn Kho',
       'exported_weight': 'Khối lượng cân xuất',
       'inventory_weight': 'Khối lượng tồn kho',
       'imported_weight': 'Khối lượng cân nhập',
-      
+
       // Connect Bluetooth Screen
       'search_scale': 'Tìm kiếm Cân',
       'no_devices_found': 'Không tìm thấy thiết bị nào.',
       'connected_success': '✅ Kết nối thành công với cân',
-      
+
       // Notifications
       'please_enter_card_number': 'Vui lòng nhập số thẻ.',
       'login_success': 'Đăng nhập thành công! Chào',
@@ -183,12 +188,12 @@ class LanguageService extends ChangeNotifier {
       'scan_success': 'Scan mã thành công!\nLoại:',
       'please_scan_to_weigh': 'Vui lòng scan mã để cân!',
       'connection_lost': 'Đã mất kết nối với cân Bluetooth!',
-      
+
       // Notification Titles
       'notification_success': 'Thành công',
       'notification_error': 'Đã xảy ra lỗi',
       'notification_info': 'Thông báo',
-      
+
       // Table Labels
       'order': 'Lệnh',
       'batches_weighed': 'Số mẻ đã cân',
@@ -196,7 +201,7 @@ class LanguageService extends ChangeNotifier {
       'export_weight': 'Xuất',
       'memo': 'Memo',
       'batch_count': 'Số mẻ đã cân',
-      
+
       // Weighing Table Headers
       'glue_name': 'Tên Phôi Keo',
       'batch_number': 'Số Mẻ',
@@ -217,14 +222,15 @@ class LanguageService extends ChangeNotifier {
       'language': 'Language',
       'vietnamese': 'Tiếng Việt',
       'english': 'English',
-      
+
       // Settings Screen
       'settings': 'Settings',
       'general_settings': 'General Settings',
       'auto_complete': 'Auto Complete',
       'auto_complete_desc': 'Enable auto complete',
       'stability_threshold': 'Stability Threshold',
-      'stability_threshold_desc': 'Number of consecutive reads to confirm stability',
+      'stability_threshold_desc':
+          'Number of consecutive reads to confirm stability',
       'sound_enabled': 'Sound Enabled',
       'sound_enabled_desc': 'Play beep when weighing is completed',
       'history_range': 'Weighing History',
@@ -243,15 +249,16 @@ class LanguageService extends ChangeNotifier {
       '3_seconds': '3 seconds',
       '5_seconds': '5 seconds',
       '10_seconds': '10 seconds',
-      
+
       // Home Screen
       'weighing_station': 'Weighing Station',
       'dashboard': 'Dashboard',
       'history': 'Weighing History',
       'pending_data': 'Pending Data',
       'app_version': 'Weighing Station App - Version',
-      'not_connected': 'Not connected to scale! Redirecting to connection page...',
-      
+      'not_connected':
+          'Not connected to scale! Redirecting to connection page...',
+
       // Weighing Station Screen
       'scan_to_display_info': 'Please scan code to display information',
       'current_weight': 'Current Weight',
@@ -265,15 +272,17 @@ class LanguageService extends ChangeNotifier {
       'complete': 'Complete',
       'weighing_import': 'Import',
       'weighing_export': 'Export',
+      'weighing_reweigh': 'Reweigh',
       'back_to_home': 'Back to Home',
       'debug_simulate': '🛠️ DEBUG: Simulate Scale',
       'enter_weight': 'Enter weight (kg)',
       'example': 'Ex: 50.5',
-      'debug_note': 'Note: Enter a number and wait, the system will continuously send data to trigger "Stable".',
-      
+      'debug_note':
+          'Note: Enter a number and wait, the system will continuously send data to trigger "Stable".',
+
       // App Bar
       'options': 'Options',
-      
+
       // Bluetooth Service
       'ready': 'Ready',
       'scanning': 'Scanning...',
@@ -281,11 +290,11 @@ class LanguageService extends ChangeNotifier {
       'connecting_to': 'Connecting to',
       'disconnected': 'Disconnected.',
       'event_error': 'Event error',
-      
+
       // Scan Input Field
       'scan_hint': 'Scan or Enter code here...',
       'scan_button': 'Scan',
-      
+
       // History Screen
       'history_title': 'Weighing History',
       'filter_device': 'Device',
@@ -296,11 +305,11 @@ class LanguageService extends ChangeNotifier {
       'filter_code': 'Code',
       'filter_ovno': 'OVNO',
       'search_hint': 'Search...',
-      
+
       // Dashboard Screen
       'dashboard_title': 'Dashboard - Overview',
       'weight_by_shift': 'Weight By Shift',
-      
+
       // Pending Sync Screen
       'pending_sync_title': 'Pending Weighing Data (Offline)',
       'no_pending_data': 'No data pending for sync.',
@@ -312,7 +321,8 @@ class LanguageService extends ChangeNotifier {
       'please_wait': 'Please wait',
       'sync_complete': 'Sync complete!',
       'no_network': 'No network connection. Please try again later.',
-      'server_error': 'Server connection error. Please check network and try again.',
+      'server_error':
+          'Server connection error. Please check network and try again.',
       'retry_success': 'Retry successful!',
       'retry_failed': 'Retry failed or no network.',
       'confirm': 'Confirm',
@@ -323,7 +333,7 @@ class LanguageService extends ChangeNotifier {
       'code': 'Code',
       'weighed_by': 'Weighed by',
       'at_time': 'At',
-      
+
       // Bluetooth Status Action
       'disconnect_tooltip': 'Disconnect',
       'confirm_disconnect_title': 'Confirm Disconnect',
@@ -334,18 +344,18 @@ class LanguageService extends ChangeNotifier {
       'reconnect_tooltip': 'Reconnect',
       'reconnecting': 'Reconnecting...',
       'cannot_reconnect': 'Cannot reconnect, redirecting to connection page.',
-      
+
       // Charts
       'inventory_overview': 'Inventory Overview',
       'exported_weight': 'Exported Weight',
       'inventory_weight': 'Inventory Weight',
       'imported_weight': 'Imported Weight',
-      
+
       // Connect Bluetooth Screen
       'search_scale': 'Search Scale',
       'no_devices_found': 'No devices found.',
       'connected_success': '✅ Successfully connected to scale',
-      
+
       // Notifications
       'please_enter_card_number': 'Please enter USER ID.',
       'login_success': 'Login successful! Welcome',
@@ -355,12 +365,12 @@ class LanguageService extends ChangeNotifier {
       'scan_success': 'Scan successful!\nType:',
       'please_scan_to_weigh': 'Please scan code to weigh!',
       'connection_lost': 'Bluetooth scale connection lost!',
-      
+
       // Notification Titles
       'notification_success': 'Success',
       'notification_error': 'Error',
       'notification_info': 'Information',
-      
+
       // Table Labels
       'order': 'Order',
       'batches_weighed': 'Batches Weighed',
@@ -368,7 +378,7 @@ class LanguageService extends ChangeNotifier {
       'export_weight': 'Export',
       'memo': 'Memo',
       'batch_count': 'Batch Count',
-      
+
       // Weighing Table Headers
       'glue_name': 'Glue Name',
       'batch_number': 'Batch No.',

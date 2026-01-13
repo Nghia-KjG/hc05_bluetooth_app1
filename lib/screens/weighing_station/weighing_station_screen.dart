@@ -141,11 +141,16 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
 
   Widget _buildWeighingTypeDropdown() {
     // Xác định màu sắc dựa trên loại cân
-    final bool isNhap = _controller.selectedWeighingType == WeighingType.nhap;
-    final Color backgroundColor =
-        isNhap
-            ? const Color(0xFF4CAF50) // Xanh lá cho Nhập
-            : const Color(0xFF2196F3); // Xanh dương cho Xuất
+    final WeighingType currentType = _controller.selectedWeighingType;
+    final Color backgroundColor;
+
+    if (currentType == WeighingType.nhap) {
+      backgroundColor = const Color(0xFF4CAF50); // Xanh lá cho Nhập
+    } else if (currentType == WeighingType.xuat) {
+      backgroundColor = const Color(0xFF2196F3); // Xanh dương cho Xuất
+    } else {
+      backgroundColor = const Color(0xFFFF9800); // Cam cho Cân lại
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 115, vertical: 6),
@@ -226,9 +231,44 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                 ),
               ),
             ),
+            DropdownMenuItem(
+              value: WeighingType.canLai,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 100,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF9800), // Cam cho Cân lại
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      LanguageService().translate('weighing_reweigh'),
+                      style: const TextStyle(color: Colors.white, fontSize: 20),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.refresh, color: Colors.white, size: 30),
+                  ],
+                ),
+              ),
+            ),
           ],
           onChanged: (WeighingType? newValue) async {
             if (newValue != null) {
+              // Không cho phép chuyển thủ công sang chế độ "Cân lại"
+              // Chỉ có thể vào chế độ này bằng cách tap vào hàng đã cân xong
+              if (newValue == WeighingType.canLai) {
+                NotificationService().showToast(
+                  context: context,
+                  message:
+                      'Để cân lại, vui lòng bấm vào hàng đã cân xong (màu xanh)!',
+                  type: ToastType.info,
+                );
+                return;
+              }
+
               await _controller.updateWeighingType(newValue, context);
               setState(() {}); // Force rebuild để đổi màu
             }
@@ -553,6 +593,9 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                   activeOVNO: _controller.activeOVNO,
                   activeMemo: _controller.activeMemo,
                   scannedCode: _controller.scannedCode,
+                  onRecordTap: (maCode) {
+                    _controller.requestReweigh(context, maCode);
+                  },
                   totalTargetQty: _controller.activeTotalTargetQty,
                   totalNhap: _controller.activeTotalNhap,
                   totalXuat: _controller.activeTotalXuat,

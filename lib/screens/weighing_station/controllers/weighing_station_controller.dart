@@ -16,7 +16,7 @@ import '../../../services/audio_service.dart';
 import '../../../services/settings_service.dart';
 import '../../../services/auth_service.dart';
 
-enum WeighingType { nhap, xuat }
+enum WeighingType { nhap, xuat, canLai }
 
 class WeighingException implements Exception {
   final String message;
@@ -36,9 +36,11 @@ class WeighingStationController with ChangeNotifier {
   String? _activeOVNO;
   String? _activeMemo;
   String? _scannedCode; // Mã được scan gần nhất
+  String? _reweighCode; // Mã cần cân lại
   String? get activeOVNO => _activeOVNO;
   String? get activeMemo => _activeMemo;
   String? get scannedCode => _scannedCode;
+  String? get reweighCode => _reweighCode;
 
   // --- STATE ---
   final List<WeighingRecord> _records = [];
@@ -168,8 +170,60 @@ class WeighingStationController with ChangeNotifier {
       }
     }
 
+    // Reset chế độ cân lại nếu người dùng chọn nhập hoặc xuất từ dropdown
+    if (newType == WeighingType.nhap || newType == WeighingType.xuat) {
+      _reweighCode = null;
+      if (kDebugMode) {
+        print('🔓 Thoát chế độ cân lại - Người dùng chọn $newType');
+      }
+    }
+
     _selectedWeighingType = newType;
     notifyListeners();
+  }
+
+  /// Yêu cầu cân lại mã đã cân (hiển thị từ UI khi tap vào hàng màu xanh)
+  Future<void> requestReweigh(BuildContext context, String maCode) async {
+    // Hiển thị dialog xác nhận
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Xác nhận cân lại'),
+          content: Text('Bạn có muốn cân lại mã $maCode không?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Không'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Có'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      // Chuyển sang chế độ cân lại
+      _selectedWeighingType = WeighingType.canLai;
+      _reweighCode = maCode;
+
+      // Reset trạng thái
+      _standardWeight = 0.0;
+      _calculateMinMax();
+
+      notifyListeners();
+
+      if (context.mounted) {
+        NotificationService().showToast(
+          context: context,
+          message: 'Vui lòng scan lại mã $maCode để cân lại',
+          type: ToastType.info,
+        );
+      }
+    }
   }
 
   // --- LẤY DỮ LIỆU OFFLINE ---
@@ -225,6 +279,23 @@ class WeighingStationController with ChangeNotifier {
 
   // --- HÀM XỬ LÝ SCAN ---
   Future<void> handleScan(BuildContext context, String code) async {
+    // Kiểm tra nếu đang ở chế độ cân lại
+    if (_selectedWeighingType == WeighingType.canLai) {
+      // Phải scan đúng mã cần cân lại
+      if (code != _reweighCode) {
+        if (context.mounted) {
+          NotificationService().showToast(
+            context: context,
+            message: 'Vui lòng scan đúng mã $_reweighCode để cân lại!',
+            type: ToastType.error,
+          );
+        }
+        return;
+      }
+      // Nếu đúng mã, tiếp tục xử lý như bình thường
+      // (logic cân lại sẽ được xử lý trong completeCurrentWeighing)
+    }
+
     // Xóa state cũ khi scan mã mới (khác với mã hiện tại)
     if (_scannedCode != null && _scannedCode != code) {
       await clearSavedState();
@@ -480,23 +551,31 @@ class WeighingStationController with ChangeNotifier {
       }
 
       // --- BƯỚC 2: TỰ ĐỘNG XÁC ĐỊNH LOẠI CÂN DỰA TRÊN TRẠNG THÁI ---
-      // - Nếu chưa cân nhập → loại = nhap
-      // - Nếu đã cân nhập → loại = xuat
-      WeighingType autoDetectedType =
-          isNhapWeighedFromServer == true
-              ? WeighingType.xuat
-              : WeighingType.nhap;
+      // QUAN TRỌNG: Nếu đang ở chế độ "Cân lại", không tự động chuyển loại cân
+      if (_selectedWeighingType != WeighingType.canLai) {
+        // - Nếu chưa cân nhập → loại = nhap
+        // - Nếu đã cân nhập → loại = xuat
+        WeighingType autoDetectedType =
+            isNhapWeighedFromServer == true
+                ? WeighingType.xuat
+                : WeighingType.nhap;
 
-      if (kDebugMode) {
-        print('📊 Trạng thái mã $code:');
-        print('  - Đã cân nhập: $isNhapWeighedFromServer');
-        print(
-          '  - Loại tự động: ${autoDetectedType == WeighingType.nhap ? "CÂN NHẬP" : "CÂN XUẤT"}',
-        );
+        if (kDebugMode) {
+          print('📊 Trạng thái mã $code:');
+          print('  - Đã cân nhập: $isNhapWeighedFromServer');
+          print(
+            '  - Loại tự động: ${autoDetectedType == WeighingType.nhap ? "CÂN NHẬP" : "CÂN XUẤT"}',
+          );
+        }
+
+        // --- BƯỚC 3: CẬP NHẬT LOẠI CÂN ---
+        _selectedWeighingType = autoDetectedType;
+      } else {
+        // Đang ở chế độ cân lại - giữ nguyên
+        if (kDebugMode) {
+          print('🔒 Đang ở chế độ CÂN LẠI - Giữ nguyên loại cân');
+        }
       }
-
-      // --- BƯỚC 3: CẬP NHẬT LOẠI CÂN ---
-      _selectedWeighingType = autoDetectedType;
 
       // --- CẬP NHẬT UI ---
       if (!context.mounted) return;
@@ -720,11 +799,21 @@ class WeighingStationController with ChangeNotifier {
       _isAutoCompletePending = false;
       _autoCompleteTimer?.cancel();
 
-      final typeText =
-          autoDetectedType == WeighingType.nhap ? "CÂN NHẬP" : "CÂN XUẤT";
+      // Thông báo scan thành công
+      String notificationMessage;
+      if (_selectedWeighingType == WeighingType.canLai) {
+        notificationMessage = 'Scan mã $code thành công!\nLoại: CÂN LẠI';
+      } else {
+        final typeText =
+            _selectedWeighingType == WeighingType.nhap
+                ? "CÂN NHẬP"
+                : "CÂN XUẤT";
+        notificationMessage = 'Scan mã $code thành công!\nLoại: $typeText';
+      }
+
       NotificationService().showToast(
         context: context,
-        message: 'Scan mã $code thành công!\nLoại: $typeText',
+        message: notificationMessage,
         type: ToastType.success,
       );
     } on WeighingException catch (e) {
@@ -793,8 +882,17 @@ class WeighingStationController with ChangeNotifier {
     }
 
     final thoiGianCan = DateTime.now();
-    final loaiCan =
-        (_selectedWeighingType == WeighingType.nhap) ? 'nhap' : 'xuat';
+final loaiCan =
+        _selectedWeighingType == WeighingType.nhap
+            ? 'nhap'
+            : (_selectedWeighingType == WeighingType.xuat ? 'xuat' : 'canLai');
+
+    if (kDebugMode) {
+      print('🔍 DEBUG completeCurrentWeighing:');
+      print('  - _selectedWeighingType: $_selectedWeighingType');
+      print('  - loaiCan: $loaiCan');
+    }
+
     final thoiGianString = DateFormat(
       'yyyy-MM-dd HH:mm:ss',
     ).format(thoiGianCan);
@@ -810,11 +908,13 @@ class WeighingStationController with ChangeNotifier {
         if (kDebugMode)
           print('🛰️ Online Mode: Đang gửi "Hoàn tất" lên server...');
 
+        // Sử dụng cùng endpoint /api/complete cho tất cả các loại cân
+        // Backend sẽ phân biệt qua trường 'loai': 'nhap', 'xuat', hoặc 'canLai'
         final Map<String, dynamic> body = {
           'maCode': currentRecord.maCode,
           'khoiLuongCan': currentWeight,
           'thoiGianCan': thoiGianString,
-          'loai': loaiCan,
+          'loai': loaiCan, // 'nhap', 'xuat', hoặc 'canLai'
           'WUserID': AuthService().mUserID,
           'device': getConnectedDeviceName(),
         };
@@ -1001,13 +1101,21 @@ class WeighingStationController with ChangeNotifier {
       _standardWeight = 0.0;
       _calculateMinMax();
 
+      // Reset chế độ cân lại nếu vừa hoàn tất cân lại
+      if (_selectedWeighingType == WeighingType.canLai) {
+        _selectedWeighingType = WeighingType.nhap; // Quay về cân nhập
+        _reweighCode = null;
+      }
+
       if (!context.mounted) return false;
+
+      final String actionText = loaiCan == 'canLai' ? 'Cân lại' : 'Đã cân';
       NotificationService().showToast(
         context: context,
         message:
             'Tên Phôi Keo: ${currentRecord.tenPhoiKeo}\n'
             'Số Lô: ${currentRecord.soLo}\n'
-            'Đã cân: ${currentWeight.toStringAsFixed(2)} kg!',
+            '$actionText: ${currentWeight.toStringAsFixed(2)} kg!',
         type: ToastType.success,
       );
 

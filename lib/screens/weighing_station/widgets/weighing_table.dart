@@ -9,6 +9,7 @@ class WeighingTable extends StatelessWidget {
   final String? activeOVNO;
   final String? activeMemo;
   final String? scannedCode; // Mã được scan gần nhất
+  final Function(String maCode)? onRecordTap; // Callback khi tap vào hàng
 
   final double totalTargetQty;
   final double totalNhap;
@@ -24,6 +25,7 @@ class WeighingTable extends StatelessWidget {
     this.activeOVNO,
     this.activeMemo,
     this.scannedCode,
+    this.onRecordTap,
     required this.totalTargetQty,
     required this.totalNhap,
     required this.totalXuat,
@@ -98,7 +100,10 @@ class WeighingTable extends StatelessWidget {
                       verticalDivider(),
                       headerCell(_languageService.translate('batch_number'), 2),
                       verticalDivider(),
-                      headerCell(_languageService.translate('machine_number'), 2),
+                      headerCell(
+                        _languageService.translate('machine_number'),
+                        2,
+                      ),
                       verticalDivider(),
                       headerCell(_languageService.translate('operator'), 3),
                       verticalDivider(),
@@ -106,7 +111,10 @@ class WeighingTable extends StatelessWidget {
                       verticalDivider(),
                       headerCell(khoiLuongDaCanHeader, 3),
                       verticalDivider(),
-                      headerCell(_languageService.translate('weighing_time'), 3),
+                      headerCell(
+                        _languageService.translate('weighing_time'),
+                        3,
+                      ),
                     ],
                   ),
                 ),
@@ -154,98 +162,126 @@ class WeighingTable extends StatelessWidget {
                         itemCount: sortedRecords.length,
                         itemBuilder: (context, index) {
                           final record = sortedRecords[index];
-                          // Chọn màu dựa trên mã được scan
+                          // Chọn màu dựa trên mã được scan và trạng thái
                           Color rowColor;
                           if (record.maCode == scannedCode) {
-                            // Dòng mã được scan: màu vàng
-                            rowColor = const Color.fromARGB(255, 255, 255, 153);
+                            // Nếu đã cân xong: màu xanh lá
+                            if (record.isSuccess == true) {
+                              rowColor = const Color.fromARGB(
+                                255,
+                                144,
+                                238,
+                                144,
+                              ); // Light green
+                            } else {
+                              // Đang cân: màu vàng
+                              rowColor = const Color.fromARGB(
+                                255,
+                                255,
+                                255,
+                                153,
+                              );
+                            }
                           } else {
                             // Các dòng khác: màu trắng
                             rowColor = Colors.white;
                           }
 
-                          return Container(
-                            color: rowColor,
-                            child: IntrinsicHeight(
-                              child: Row(
-                                children: [
-                                  dataCell(
-                                    record.tenPhoiKeo ?? 'N/A',
-                                    3,
-                                  ), // FormulaF
-                                  dataCell(
-                                    '${record.package}/$yTotal',
-                                    2,
-                                  ), // soLo/package
-                                  dataCell(record.soMay, 2), // soMay
-                                  dataCell(
-                                    record.nguoiThaoTac ?? 'N/A',
-                                    3,
-                                  ), // UerName
-                                  dataCell(
-                                    record.qtys.toStringAsFixed(2),
-                                    3,
-                                  ), // Mẻ/Tồn
-                                  // Khối Lượng Đã Cân:
-                                  // - Nếu là mã được scan:
-                                  //   + Cân nhập: hiển thị realQty hoặc '---'
-                                  //   + Cân xuất: hiển thị weighedXuatAmount
-                                  // - Nếu không phải mã scan:
-                                  //   + Cân nhập: hiển thị weighedNhapAmount
-                                  //   + Cân xuất: hiển thị weighedXuatAmount
-                                  dataCell(
-                                    record.maCode == scannedCode
-                                        ? (weighingType == WeighingType.nhap
-                                            ? (record.realQty?.toStringAsFixed(2) ??
-                                                '---')
-                                            : (record.weighedXuatAmount
-                                                    ?.toStringAsFixed(2) ??
-                                                '---'))
-                                        : (weighingType == WeighingType.nhap
-                                            ? (record.weighedNhapAmount
-                                                    ?.toStringAsFixed(2) ??
-                                                '---')
-                                            : (record.weighedXuatAmount
-                                                    ?.toStringAsFixed(2) ??
-                                                '---')),
-                                    3,
-                                  ), // Đã Cân
-                                  Builder(
-                                    builder: (context) {
-                                      String thoiGianText;
-                                      // Nếu là mã được scan: không hiển thị mixTime từ backend
-                                      // Chỉ hiển thị mixTime cho các mã khác
-                                      if (record.maCode == scannedCode) {
-                                        thoiGianText =
-                                            '---'; // Mã đang cân chưa có thời gian
-                                      } else if (record.mixTime == null) {
-                                        thoiGianText =
-                                            '---'; // chưa có thời gian cân '---'
-                                      } else {
-                                        final dt = record.mixTime!;
-                                        // Định dạng: dd/MM/yyyy HH:mm
-                                        final d = dt.day.toString().padLeft(
-                                          2,
-                                          '0',
-                                        );
-                                        final m = dt.month.toString().padLeft(
-                                          2,
-                                          '0',
-                                        );
-                                        final y = dt.year;
-                                        final h = dt.hour.toString().padLeft(
-                                          2,
-                                          '0',
-                                        );
-                                        final min = dt.minute
-                                            .toString()
-                                            .padLeft(2, '0');
-                                        thoiGianText = '$d/$m/$y  $h:$min';
-                                      }
-                                      return dataCell(thoiGianText, 3);
-                                    },
-                                  ),
-                                ],
+                          return GestureDetector(
+                            // Chỉ cho phép tap vào hàng đã cân xong (màu xanh)
+                            onTap:
+                                (record.maCode == scannedCode &&
+                                        record.isSuccess == true)
+                                    ? () {
+                                      onRecordTap?.call(record.maCode);
+                                    }
+                                    : null,
+                            child: Container(
+                              color: rowColor,
+                              child: IntrinsicHeight(
+                                child: Row(
+                                  children: [
+                                    dataCell(
+                                      record.tenPhoiKeo ?? 'N/A',
+                                      3,
+                                    ), // FormulaF
+                                    dataCell(
+                                      '${record.package}/$yTotal',
+                                      2,
+                                    ), // soLo/package
+                                    dataCell(record.soMay, 2), // soMay
+                                    dataCell(
+                                      record.nguoiThaoTac ?? 'N/A',
+                                      3,
+                                    ), // UerName
+                                    dataCell(
+                                      record.qtys.toStringAsFixed(2),
+                                      3,
+                                    ), // Mẻ/Tồn
+                                    // Khối Lượng Đã Cân:
+                                    // - Nếu là mã được scan:
+                                    //   + Cân nhập: hiển thị realQty hoặc '---'
+                                    //   + Cân xuất: hiển thị weighedXuatAmount
+                                    // - Nếu không phải mã scan:
+                                    //   + Cân nhập: hiển thị weighedNhapAmount
+                                    //   + Cân xuất: hiển thị weighedXuatAmount
+                                    dataCell(
+                                      record.maCode == scannedCode
+                                          ? (weighingType == WeighingType.nhap
+                                              ? (record.realQty
+                                                      ?.toStringAsFixed(2) ??
+                                                  '---')
+                                              : (record.weighedXuatAmount
+                                                      ?.toStringAsFixed(2) ??
+                                                  '---'))
+                                          : (weighingType == WeighingType.nhap
+                                              ? (record.weighedNhapAmount
+                                                      ?.toStringAsFixed(2) ??
+                                                  '---')
+                                              : (record.weighedXuatAmount
+                                                      ?.toStringAsFixed(2) ??
+                                                  '---')),
+                                      3,
+                                    ), // Đã Cân
+                                    Builder(
+                                      builder: (context) {
+                                        String thoiGianText;
+                                        // Nếu là mã được scan VÀ chưa cân xong → hiển thị '---'
+                                        // Nếu là mã được scan NHƯNG đã cân xong → hiển thị thời gian
+                                        // Các mã khác → hiển thị thời gian hoặc '---'
+                                        if (record.maCode == scannedCode &&
+                                            record.isSuccess != true) {
+                                          thoiGianText =
+                                              '---'; // Mã đang cân chưa hoàn tất
+                                        } else if (record.mixTime == null) {
+                                          thoiGianText =
+                                              '---'; // chưa có thời gian cân '---'
+                                        } else {
+                                          final dt = record.mixTime!;
+                                          // Định dạng: dd/MM/yyyy HH:mm
+                                          final d = dt.day.toString().padLeft(
+                                            2,
+                                            '0',
+                                          );
+                                          final m = dt.month.toString().padLeft(
+                                            2,
+                                            '0',
+                                          );
+                                          final y = dt.year;
+                                          final h = dt.hour.toString().padLeft(
+                                            2,
+                                            '0',
+                                          );
+                                          final min = dt.minute
+                                              .toString()
+                                              .padLeft(2, '0');
+                                          thoiGianText = '$d/$m/$y  $h:$min';
+                                        }
+                                        return dataCell(thoiGianText, 3);
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -264,7 +300,10 @@ class WeighingTable extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Text('${_languageService.translate('order')} : $activeOVNO', style: summaryStyle),
+                      Text(
+                        '${_languageService.translate('order')} : $activeOVNO',
+                        style: summaryStyle,
+                      ),
                       const Spacer(flex: 1),
                       Text(
                         '${_languageService.translate('batches_weighed')}: $xWeighed / $yTotal',
