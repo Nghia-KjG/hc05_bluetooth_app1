@@ -82,6 +82,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildMenuButton(
                         context: context,
                         iconPath: 'lib/assets/images/dashboard.png',
+                        label: 'Kho Cân',
+                        onPressed: () {
+                          Navigator.of(context).pushNamed('/weighing_warehouse');
+                        },
+                      ),
+                      _buildMenuButton(
+                        context: context,
+                        iconPath: 'lib/assets/images/dashboard.png',
                         label: lang.translate('dashboard'),
                         onPressed: () {
                           Navigator.of(context).pushNamed('/dashboard');

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/connect_blu/connect_blu_screen.dart';
 import 'screens/weighing_station/weighing_station_screen.dart';
+import 'screens/weighing_warehouse/weighing_warehouse_screen.dart';
 import 'screens/login/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/history/history_screen.dart';
@@ -92,6 +93,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         '/home': (context) => const HomeScreen(),
         '/scan': (context) => const ScanScreen(),
         '/weighing_station': (context) => const WeighingStationScreen(),
+        '/weighing_warehouse': (context) => const WeighingWarehouseScreen(),
         '/history': (context) => const HistoryScreen(),
         '/dashboard': (context) => const DashboardScreen(),
         '/pending_sync': (context) => const PendingSyncScreen(),
