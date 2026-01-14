@@ -399,9 +399,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                         maxWeight: _controller.maxWeight,
                         khoiLuongMe: _controller.khoiLuongMe,
                         hasScannedCode: _scanTextController.text.isNotEmpty,
-                        isXuat:
-                            _controller.selectedWeighingType ==
-                            WeighingType.xuat,
+                        isXuat: _controller.isXuatMode,
                         weighedNhapAmount: _controller.weighedNhapAmount,
                         weighedXuatAmount: _controller.weighedXuatAmount,
                       ),

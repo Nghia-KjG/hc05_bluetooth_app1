@@ -76,7 +76,7 @@ class HistoryTable extends StatelessWidget {
                 headerCell('Số Máy', 3), verticalDivider(),
                 headerCell('Người Thao Tác', 4), verticalDivider(),
                 headerCell('Thời Gian Cân', 4), verticalDivider(),
-                headerCell('KL Mẻ/Tồn(kg)', 3), verticalDivider(),
+                headerCell('KL Mẻ(kg)', 3), verticalDivider(),
                 headerCell('KL Đã Cân(kg)', 3), verticalDivider(),
                 headerCell('Loại Cân', 3), 
               ],
