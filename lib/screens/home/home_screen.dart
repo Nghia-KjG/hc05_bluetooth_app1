@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           
           // 2. Màu nền xanh nhạt
-          backgroundColor: const Color(0xFFBCE0F5), // Màu xanh từ ảnh
+          //backgroundColor: const Color(0xFFBCE0F5), // Màu xanh từ ảnh
           
           body: Column(
             children: [
@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       _buildMenuButton(
                         context: context,
-                        iconPath: 'lib/assets/images/dashboard.png',
+                        iconPath: 'lib/assets/images/chemical.png',
                         label: 'Kho Cân',
                         onPressed: () {
                           Navigator.of(context).pushNamed('/weighing_warehouse');
@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       _buildMenuButton(
                         context: context,
-                        iconPath: 'lib/assets/images/dashboard.png',
+                        iconPath:  'lib/assets/images/dashboard.png',
                         label: lang.translate('dashboard'),
                         onPressed: () {
                           Navigator.of(context).pushNamed('/dashboard');

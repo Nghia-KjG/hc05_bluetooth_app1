@@ -122,17 +122,17 @@ class SummaryTable extends StatelessWidget {
                 ? '9.600'
                 : index == 6
                 ? '0.248'
-                : '${(index * 1.5).toStringAsFixed(3)}',
+                : (index * 1.5).toStringAsFixed(3),
             flex: 2,
             bgColor: bgColor,
           ),
           _buildCell(
-            isHighlighted ? '${(index * 0.1).toStringAsFixed(3)}' : '0.000',
+            isHighlighted ? (index * 0.1).toStringAsFixed(3) : '0.000',
             flex: 2,
             bgColor: bgColor,
           ),
           _buildCell(
-            isHighlighted ? '${(index * 0.5).toStringAsFixed(3)}' : '0.000',
+            isHighlighted ? (index * 0.5).toStringAsFixed(3) : '0.000',
             flex: 2,
             bgColor: bgColor,
           ),

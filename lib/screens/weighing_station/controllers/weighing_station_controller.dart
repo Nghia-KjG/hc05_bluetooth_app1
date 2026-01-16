@@ -333,10 +333,18 @@ class WeighingStationController with ChangeNotifier {
         // OFFLINE MODE
         data = await _scanHandler.scanFromCache(db, code);
 
-        // Xử lý trạng thái offline
+        // Xử lý trạng thái offline - hỗ trợ canLai mode
         final String loaiFromCache =
             (data['loai'] ?? '').toString().toLowerCase().trim();
         final dynamic realQtyFromCache = data['realQty'];
+
+        // Khi ở chế độ canLai, cần kiểm tra dựa trên _originalWeighingType
+        String loaiToCheck = loaiFromCache;
+        if (_selectedWeighingType == WeighingType.canLai && 
+            _originalWeighingType != null) {
+          loaiToCheck = _originalWeighingType == WeighingType.nhap ? 'nhap' : 'xuat';
+        }
+
         bool hasWeighedNhapInCache =
             (realQtyFromCache != null) || (loaiFromCache == 'nhap');
 
@@ -346,6 +354,14 @@ class WeighingStationController with ChangeNotifier {
           whereArgs: [code, 'nhap'],
         );
         bool hasWeighedNhapInQueue = existingNhapInQueue.isNotEmpty;
+
+        // Khi canLai: kiểm tra dựa trên loai ban đầu
+        if (_selectedWeighingType == WeighingType.canLai && 
+            _originalWeighingType == WeighingType.xuat) {
+          // Cân lại xuất: kiểm tra xem xuất đã được cân chưa
+          hasWeighedNhapInCache = false;
+          hasWeighedNhapInQueue = false;
+        }
 
         isNhapWeighedFromServer =
             hasWeighedNhapInCache || hasWeighedNhapInQueue;
@@ -374,6 +390,8 @@ class WeighingStationController with ChangeNotifier {
           queueXuat += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
         }
 
+        // Logic đơn giản: cache + queue
+        // (Không còn nhapLai/xuatLai vì đã chuyển thành nhap/xuat khi lưu)
         weighedNhap = cachedNhap + queueNhap;
         weighedXuat = cachedXuat + queueXuat;
 

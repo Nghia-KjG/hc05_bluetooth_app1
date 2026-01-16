@@ -33,6 +33,7 @@ class _WeighingWarehouseScreenState extends State<WeighingWarehouseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: MainAppBar(
         title: 'Hệ Thống Cân Hóa Chất',
         bluetoothService: _bluetoothService,
@@ -297,7 +298,7 @@ class _WeighingWarehouseScreenState extends State<WeighingWarehouseScreen> {
                           .map(
                             (value) => DropdownMenuItem(
                               value: value,
-                              child: Text('${value}%'),
+                              child: Text('$value%'),
                             ),
                           )
                           .toList(),

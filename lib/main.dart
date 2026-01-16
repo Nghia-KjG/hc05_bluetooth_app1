@@ -1,4 +1,3 @@
-//import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/connect_blu/connect_blu_screen.dart';
@@ -14,6 +13,9 @@ import 'services/settings_service.dart';
 import 'services/language_service.dart';
 import 'screens/settings/settings_screen.dart';
 import 'services/database_helper.dart';
+/*import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';*/
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,9 +82,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         useMaterial3: true,
         scaffoldBackgroundColor: const Color.fromARGB(
           255,
-          173,
-          207,
-          241,
+          215,
+          239,
+          255,
         ), // Màu nền
       ),
       debugShowCheckedModeBanner: false,

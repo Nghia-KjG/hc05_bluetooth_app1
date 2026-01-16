@@ -139,12 +139,38 @@ class WeighingCompletionHandler {
 
     // Lưu vào cả 2 bảng cục bộ
     await db.transaction((txn) async {
+      // Nếu là cân lại, XÓA bản ghi cũ trong HistoryQueue trước
+      if (loaiCan == 'nhapLai') {
+        await txn.delete(
+          'HistoryQueue',
+          where: 'maCode = ? AND loai = ?',
+          whereArgs: [maCode, 'nhap'],
+        );
+        if (kDebugMode) print('🗑️ Đã xóa bản ghi cân nhập cũ trong queue');
+      } else if (loaiCan == 'xuatLai') {
+        await txn.delete(
+          'HistoryQueue',
+          where: 'maCode = ? AND loai = ?',
+          whereArgs: [maCode, 'xuat'],
+        );
+        if (kDebugMode) print('🗑️ Đã xóa bản ghi cân xuất cũ trong queue');
+      }
+
       // Lưu vào HistoryQueue
+      // Khi cân lại offline: lưu lại là 'nhap'/'xuat' (không phải 'nhapLai'/'xuatLai')
+      // Vì bản ghi cũ đã bị xóa, nên không cần phân biệt khi đồng bộ lên server
+      String loaiToSave = loaiCan;
+      if (loaiCan == 'nhapLai') {
+        loaiToSave = 'nhap';
+      } else if (loaiCan == 'xuatLai') {
+        loaiToSave = 'xuat';
+      }
+      
       await txn.insert('HistoryQueue', {
         'maCode': maCode,
         'khoiLuongCan': currentWeight,
         'thoiGianCan': thoiGianString,
-        'loai': loaiCan,
+        'loai': loaiToSave, // Lưu 'nhap'/'xuat' thay vì 'nhapLai'/'xuatLai'
         'WUserID': AuthService().mUserID,
         'device': deviceName,
       });
@@ -153,31 +179,16 @@ class WeighingCompletionHandler {
       final updateData = <String, dynamic>{
         'realQty': currentWeight,
         'mixTime': thoiGianString,
-        'loai': loaiCan,
+        'loai': loaiToSave, // Cũng lưu 'nhap'/'xuat'
       };
 
-      // Lấy giá trị cũ để cộng dồn
-      final existingRecord = await txn.query(
-        'VmlWorkS',
-        columns: ['weighedNhapAmount', 'weighedXuatAmount'],
-        where: 'maCode = ?',
-        whereArgs: [maCode],
-      );
-
-      if (existingRecord.isNotEmpty) {
-        final oldNhap =
-            (existingRecord.first['weighedNhapAmount'] as num? ?? 0.0).toDouble();
-        final oldXuat =
-            (existingRecord.first['weighedXuatAmount'] as num? ?? 0.0).toDouble();
-
-        if (loaiCan == 'nhap' || loaiCan == 'nhapLai') {
-          final newNhapAmount = oldNhap + currentWeight;
-          updateData['weighedNhapAmount'] = newNhapAmount;
-        } else if (loaiCan == 'xuat' || loaiCan == 'xuatLai') {
-          final newXuatAmount = oldXuat + currentWeight;
-          updateData['weighedXuatAmount'] = newXuatAmount;
-        }
-      }
+      // QUAN TRỌNG: KHÔNG cộng vào cache khi offline!
+      // - Cache chỉ lưu giá trị từ SERVER (đã đồng bộ)
+      // - Queue lưu giá trị offline (chờ đồng bộ)
+      // - Khi tính weighedAmounts: cache + queue
+      // - Nếu cộng vào cache ở đây → gấp đôi!
+      
+      // Chỉ cập nhật realQty, mixTime, loai - KHÔNG cập nhật weighedAmounts
 
       await txn.update(
         'VmlWorkS',
@@ -196,14 +207,16 @@ class WeighingCompletionHandler {
     double currentWeight,
   ) async {
     // Kiểm tra cho cân nhập
-    if (loaiCan == 'nhap' || loaiCan == 'nhapLai') {
+    if (loaiCan == 'nhap') {
+      // Chỉ kiểm tra khi cân nhập lần đầu (không phải cân lại)
+      // Không còn 'nhapLai' trong queue nữa (đã chuyển thành 'nhap')
       final existingInQueue = await db.query(
         'HistoryQueue',
         where: 'maCode = ? AND loai = ?',
         whereArgs: [maCode, 'nhap'],
       );
       if (existingInQueue.isNotEmpty) {
-        throw WeighingException('Mã này đã được cân (đang chờ đồng bộ).');
+        throw WeighingException('Mã này đã được cân nhập (đang chờ đồng bộ).');
       }
 
       final existingInCache = await db.query(
@@ -215,21 +228,78 @@ class WeighingCompletionHandler {
         throw WeighingException('Mã này đã được cân nhập (đã đồng bộ).');
       }
     }
+    
+    // Không validate cho nhapLai/xuatLai vì đó là cân lại (cho phép thay thế)
 
     // Kiểm tra cho cân xuất (offline)
     if (loaiCan == 'xuat' || loaiCan == 'xuatLai') {
       final weighedNhap = calculator.weighedNhapAmount;
-      final weighedXuat = calculator.weighedXuatAmount;
-
+      
       if (weighedNhap <= 0) {
         throw WeighingException('Lỗi: Mã này CHƯA CÂN NHẬP (offline).');
       }
 
-      final newTotalXuat = weighedXuat + currentWeight;
-      if (newTotalXuat > weighedNhap) {
-        throw WeighingException(
-          'Lỗi: Tổng xuất (${newTotalXuat.toStringAsFixed(2)} kg) vượt quá tổng nhập (${weighedNhap.toStringAsFixed(2)} kg)!',
+      // Logic khác nhau cho xuất lần đầu vs xuất lại
+      if (loaiCan == 'xuatLai') {
+        // Xuất LẠI: Logic đặc biệt - phần xuất cũ được "hoàn trả"
+        // Có thể xuất tối đa = Còn lại + Khối lượng xuất cũ
+        
+        // 1. Lấy khối lượng xuất CŨ (đang chuẩn bị xóa)
+        final oldXuatQueue = await db.query(
+          'HistoryQueue',
+          where: 'maCode = ? AND loai = ?',
+          whereArgs: [maCode, 'xuat'],
         );
+        
+        double oldXuatAmount = 0.0;
+        for (var row in oldXuatQueue) {
+          oldXuatAmount += (row['khoiLuongCan'] as num? ?? 0.0).toDouble();
+        }
+        
+        // 2. Lấy từ cache (đã đồng bộ)
+        final cacheRecord = await db.query(
+          'VmlWorkS',
+          columns: ['weighedXuatAmount'],
+          where: 'maCode = ?',
+          whereArgs: [maCode],
+        );
+        final cachedXuat = cacheRecord.isNotEmpty
+            ? (cacheRecord.first['weighedXuatAmount'] as num? ?? 0.0).toDouble()
+            : 0.0;
+        
+        // 3. Tổng xuất KHÁC = chỉ cache (không tính xuất cũ trong queue)
+        // Vì không còn xuatLai trong queue nữa (đã chuyển thành 'xuat')
+        final otherXuatAmount = cachedXuat;
+        
+        // 4. CÂN LẠI: Cho phép = Còn lại + Xuất cũ (hoàn trả)
+        final remainingAllowed = weighedNhap - otherXuatAmount;
+        final maxAllowed = remainingAllowed + oldXuatAmount;
+        
+        if (currentWeight > maxAllowed) {
+          throw WeighingException(
+            'Lỗi: Xuất lại (${currentWeight.toStringAsFixed(2)} kg) vượt quá khối lượng cho phép (${maxAllowed.toStringAsFixed(2)} kg)!\n'
+            'Còn lại: ${remainingAllowed.toStringAsFixed(2)} kg + Xuất cũ: ${oldXuatAmount.toStringAsFixed(2)} kg',
+          );
+        }
+        
+        if (kDebugMode) {
+          print('🔄 Xuất lại: ${currentWeight.toStringAsFixed(2)} kg');
+          print('  - Tổng nhập: ${weighedNhap.toStringAsFixed(2)} kg');
+          print('  - Cache xuất: ${cachedXuat.toStringAsFixed(2)} kg');
+          print('  - Xuất cũ (hoàn trả): ${oldXuatAmount.toStringAsFixed(2)} kg');
+          print('  - Đã xuất (khác): ${otherXuatAmount.toStringAsFixed(2)} kg');
+          print('  - Còn lại: ${remainingAllowed.toStringAsFixed(2)} kg');
+          print('  - Tối đa cho phép: ${maxAllowed.toStringAsFixed(2)} kg ✅');
+        }
+      } else {
+        // Xuất LẦN ĐẦU: cộng thêm vào tổng xuất hiện tại
+        final weighedXuat = calculator.weighedXuatAmount;
+        final newTotalXuat = weighedXuat + currentWeight;
+        if (newTotalXuat > weighedNhap) {
+          throw WeighingException(
+            'Lỗi: Tổng xuất (${newTotalXuat.toStringAsFixed(2)} kg) vượt quá tổng nhập (${weighedNhap.toStringAsFixed(2)} kg)!',
+          );
+        }
       }
     }
   }

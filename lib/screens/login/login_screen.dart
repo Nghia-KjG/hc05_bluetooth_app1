@@ -200,8 +200,9 @@ class _LoginScreenState extends State<LoginScreen> {
         } catch (e) {
           // LỖI KHI GỌI API (Vd: Timeout, 500, Mất kết nối...)
           // -> CHUYỂN SANG KIỂM TRA OFFLINE (FALLBACK)
-          if (kDebugMode)
+          if (kDebugMode) {
             print('⚠️ Lỗi API ($e), đang thử đăng nhập Offline...');
+          }
           userName = await _loginFromCache(soThe);
           successMessage = 'Đăng nhập Offline thành công! Chào $userName';
         }
@@ -273,8 +274,9 @@ class _LoginScreenState extends State<LoginScreen> {
   // --- 6. HÀM HELPER (ĐỒNG BỘ DANH SÁCH NGƯỜI DÙNG TỪ /api/sync/persons) ---
   Future<void> _syncPersonsForOfflineLogin() async {
     try {
-      if (kDebugMode)
+      if (kDebugMode) {
         print('👥 Đang tải danh sách người dùng cho offline login...');
+      }
       await SyncService().syncPersons();
       if (kDebugMode) print('✅ Đã tải danh sách người dùng thành công');
     } catch (e) {
