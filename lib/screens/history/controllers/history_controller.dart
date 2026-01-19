@@ -36,6 +36,9 @@ class HistoryController with ChangeNotifier {
   String? get selectedDevice => _selectedDevice;
   List<String> _deviceList = [];
   List<String> get deviceList => _deviceList;
+  
+  // Biến để xác định xem có đang hiển thị local data không
+  bool _showLocalDataOnly = false;
 
   HistoryController() {
     // Khởi tạo ngày hiện tại
@@ -66,57 +69,92 @@ class HistoryController with ChangeNotifier {
   void _loadData() async {
     List<dynamic> newDisplayList = [];
     try {
-      final String days = _settings.historyRange;
-      final url = Uri.parse('$_apiBaseUrl/api/history?days=$days');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> groupedData = json.decode(response.body);
-
-        // Duyệt qua từng NHÓM (mỗi nhóm là 1 OVNO)
-        for (var group in groupedData) {
+      // Kiểm tra nếu đang hiển thị local data
+      if (_showLocalDataOnly) {
+        // Load từ local database
+        final db = await DatabaseHelper().database;
+        final List<Map<String, dynamic>> localRecords = await db.query('LocalHistory');
+        
+        // Parse thành WeighingRecord
+        for (var record in localRecords) {
+          final DateTime? mixTime = record['thoiGianCan'] != null 
+              ? DateTime.tryParse(record['thoiGianCan'] as String)
+              : null;
           
-          // Lấy danh sách record con
-          final List<dynamic> recordsJson = group['records'] ?? [];
-          final List<WeighingRecord> recordList = recordsJson.map((jsonItem) {
-            return WeighingRecord(
-              maCode: jsonItem['maCode'] as String,
-              ovNO: jsonItem['ovNO'] as String,
-              package: jsonItem['package'] ?? 0,
-              mUserID: jsonItem['mUserID'].toString(),
-              qtys: (jsonItem['qtys'] as num? ?? 0.0).toDouble(),
-              mixTime: DateTime.parse(jsonItem['mixTime']),
-              realQty: (jsonItem['realQty'] as num? ?? 0.0).toDouble(),
-              isSuccess: true,
-              loai: jsonItem['loai'],
-              soLo: jsonItem['soLo'] ?? 0,
-              tenPhoiKeo: jsonItem['tenPhoiKeo'],
-              soMay: jsonItem['soMay'].toString(),
-              nguoiThaoTac: jsonItem['nguoiThaoTac'],
-              device: jsonItem['device'] as String?,
-            );
-          }).toList();
-
-          // Thêm các record con vào list hiển thị
-          newDisplayList.addAll(recordList);
-
-          // Thêm HÀNG TÓM TẮT vào list hiển thị
-          newDisplayList.add(SummaryData(
-            ovNO: group['ovNO'] as String,
-            memo: group['memo'] as String?,
-            totalTargetQty: (group['totalTargetQty'] as num? ?? 0.0).toDouble(),
-            totalNhap: (group['totalNhap'] as num? ?? 0.0).toDouble(),
-            totalXuat: (group['totalXuat'] as num? ?? 0.0).toDouble(),
-            xWeighed: (group['x_WeighedNhap'] as num? ?? 0).toInt(),
-            yTotal: (group['y_TotalPackages'] as num? ?? 0).toInt(),
+          newDisplayList.add(WeighingRecord(
+            maCode: record['maCode'] as String,
+            ovNO: (record['ovNO'] ?? '') as String,
+            package: (record['package'] as num? ?? 0).toInt(),
+            mUserID: (record['mUserID'] ?? '').toString(),
+            qtys: (record['qtys'] as num? ?? 0.0).toDouble(),
+            mixTime: mixTime,
+            realQty: (record['realQty'] as num? ?? record['khoiLuongCan'] as num? ?? 0.0).toDouble(),
+            isSuccess: true,
+            loai: record['loai'],
+            soLo: (record['package'] as num? ?? 0).toInt(),
+            soMay: (record['soMay'] ?? '').toString(),
+            tenPhoiKeo: record['tenPhoiKeo'] as String?,
+            nguoiThaoTac: record['nguoiThaoTac'] as String?,
+            device: record['device'] as String?,
+            memo: record['memo'] as String?,
           ));
         }
         
-        _allRecords = newDisplayList; // Gán vào danh sách GỐC
-        
+        _allRecords = newDisplayList;
       } else {
-        if (kDebugMode) print('Lỗi tải lịch sử: ${response.statusCode}');
-        _allRecords = [];
+        // Load từ server (logic cũ)
+        final String days = _settings.historyRange;
+        final url = Uri.parse('$_apiBaseUrl/api/history?days=$days');
+        final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final List<dynamic> groupedData = json.decode(response.body);
+
+          // Duyệt qua từng NHÓM (mỗi nhóm là 1 OVNO)
+          for (var group in groupedData) {
+            
+            // Lấy danh sách record con
+            final List<dynamic> recordsJson = group['records'] ?? [];
+            final List<WeighingRecord> recordList = recordsJson.map((jsonItem) {
+              return WeighingRecord(
+                maCode: jsonItem['maCode'] as String,
+                ovNO: jsonItem['ovNO'] as String,
+                package: jsonItem['package'] ?? 0,
+                mUserID: jsonItem['mUserID'].toString(),
+                qtys: (jsonItem['qtys'] as num? ?? 0.0).toDouble(),
+                mixTime: DateTime.parse(jsonItem['mixTime']),
+                realQty: (jsonItem['realQty'] as num? ?? 0.0).toDouble(),
+                isSuccess: true,
+                loai: jsonItem['loai'],
+                soLo: jsonItem['soLo'] ?? 0,
+                tenPhoiKeo: jsonItem['tenPhoiKeo'],
+                soMay: jsonItem['soMay'].toString(),
+                nguoiThaoTac: jsonItem['nguoiThaoTac'],
+                device: jsonItem['device'] as String?,
+              );
+            }).toList();
+
+            // Thêm các record con vào list hiển thị
+            newDisplayList.addAll(recordList);
+
+            // Thêm HÀNG TÓM TẮT vào list hiển thị
+            newDisplayList.add(SummaryData(
+              ovNO: group['ovNO'] as String,
+              memo: group['memo'] as String?,
+              totalTargetQty: (group['totalTargetQty'] as num? ?? 0.0).toDouble(),
+              totalNhap: (group['totalNhap'] as num? ?? 0.0).toDouble(),
+              totalXuat: (group['totalXuat'] as num? ?? 0.0).toDouble(),
+              xWeighed: (group['x_WeighedNhap'] as num? ?? 0).toInt(),
+              yTotal: (group['y_TotalPackages'] as num? ?? 0).toInt(),
+            ));
+          }
+          
+          _allRecords = newDisplayList; // Gán vào danh sách GỐC
+          
+        } else {
+          if (kDebugMode) print('Lỗi tải lịch sử: ${response.statusCode}');
+          _allRecords = [];
+        }
       }
     } catch (e) {
       if (kDebugMode) print('Lỗi mạng khi tải lịch sử: $e');
@@ -151,7 +189,8 @@ class HistoryController with ChangeNotifier {
     }
     
     // --- BỘ LỌC 1.5: LỌC THEO DEVICE ---
-    if (_selectedDevice != null && _selectedDevice!.isNotEmpty) {
+    // (Không áp dụng khi đang show local data - vì chỉ show device này)
+    if (!_showLocalDataOnly && _selectedDevice != null && _selectedDevice!.isNotEmpty) {
       filteredList = filteredList.where((item) {
         if (item is SummaryData) return true; // Giữ Summary
         if (item is WeighingRecord) {
@@ -259,24 +298,37 @@ class HistoryController with ChangeNotifier {
       final deviceMap = await DatabaseHelper().getDeviceNameMap();
       _deviceList = deviceMap.values.toSet().toList(); // Loại bỏ trùng lặp
       _deviceList.sort(); // Sắp xếp theo alphabet
+      
+      // Thêm option "Trên thiết bị này" vào đầu danh sách
+      _deviceList.insert(0, 'Trên thiết bị này');
+      
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print('Lỗi load devices: $e');
-      _deviceList = [];
+      _deviceList = ['Trên thiết bị này'];
     }
   }
   
   void updateSelectedDevice(String? device) {
     if (_selectedDevice != device) {
       _selectedDevice = device;
-      _runFilter();
+      
+      // Nếu chọn "Trên thiết bị này", load dữ liệu từ local database
+      if (device == 'Trên thiết bị này') {
+        _showLocalDataOnly = true;
+      } else {
+        _showLocalDataOnly = false;
+      }
+      
+      _loadData(); // Reload dữ liệu
     }
   }
   
   void clearSelectedDevice() {
     if (_selectedDevice != null) {
       _selectedDevice = null;
-      _runFilter();
+      _showLocalDataOnly = false;
+      _loadData(); // Reload dữ liệu
     }
   }
 }

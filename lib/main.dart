@@ -21,13 +21,13 @@ import 'package:sqflite/sqflite.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  /* này dùng để xóa database cũ khi cần thiết */
+  /* này dùng để xóa database cũ khi cần thiết
   if (kDebugMode) {
     final dir = await getApplicationDocumentsDirectory();
     final path = join(dir.path, "weighing_app.db");
     await deleteDatabase(path);
     print('🗑️ Database cũ đã bị xóa.');
-  }
+  } */
   
   await SettingsService().init();
   await LanguageService().initialize();

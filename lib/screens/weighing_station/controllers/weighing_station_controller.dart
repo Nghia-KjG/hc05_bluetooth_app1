@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../../data/weighing_data.dart';
 import '../../../services/bluetooth_service.dart';
 import '../../../services/database_helper.dart';
@@ -612,6 +613,28 @@ class WeighingStationController with ChangeNotifier {
           deviceName: getConnectedDeviceName(),
         );
       }
+
+      // Lưu lịch sử cân cục bộ (không xóa sau khi sync)
+      await db.insert(
+        'LocalHistory',
+        {
+          'maCode': currentRecord.maCode,
+          'khoiLuongCan': currentWeight,
+          'thoiGianCan': thoiGianString,
+          'loai': loaiCan,
+          'ovNO': _activeOVNO,
+          'device': getConnectedDeviceName(),
+          'tenPhoiKeo': currentRecord.tenPhoiKeo,
+          'soMay': currentRecord.soMay,
+          'package': currentRecord.package,
+          'mUserID': currentRecord.mUserID,
+          'nguoiThaoTac': currentRecord.nguoiThaoTac,
+          'qtys': currentRecord.qtys,
+          'realQty': currentWeight,
+          'memo': _activeMemo,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
 
       // Cập nhật UI
       currentRecord.isSuccess = true;

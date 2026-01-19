@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 8,
+      version: 10,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -70,6 +70,27 @@ class DatabaseHelper {
         loai TEXT,
         WUserID TEXT,
         device TEXT
+      )
+    ''');
+
+    // Lưu lịch sử cân cục bộ (không bị xóa sau khi sync)
+    await db.execute('''
+      CREATE TABLE LocalHistory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        maCode TEXT NOT NULL,
+        khoiLuongCan REAL,
+        thoiGianCan TEXT,
+        loai TEXT,
+        ovNO TEXT,
+        device TEXT,
+        tenPhoiKeo TEXT,
+        soMay TEXT,
+        package INTEGER,
+        mUserID TEXT,
+        nguoiThaoTac TEXT,
+        qtys REAL,
+        realQty REAL,
+        memo TEXT
       )
     ''');
 
@@ -210,6 +231,33 @@ class DatabaseHelper {
           timestamp TEXT
         )
       ''');
+    }
+
+    if (oldVersion < 9) {
+      // Tạo bảng LocalHistory để lưu lịch sử cân cục bộ (không xóa sau sync)
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS LocalHistory (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          maCode TEXT NOT NULL,
+          khoiLuongCan REAL,
+          thoiGianCan TEXT,
+          loai TEXT,
+          ovNO TEXT,
+          device TEXT
+        )
+      ''');
+    }
+
+    if (oldVersion < 10) {
+      // Bổ sung thông tin đầy đủ cho LocalHistory
+      await db.execute('ALTER TABLE LocalHistory ADD COLUMN tenPhoiKeo TEXT');
+      await db.execute('ALTER TABLE LocalHistory ADD COLUMN soMay TEXT');
+      await db.execute('ALTER TABLE LocalHistory ADD COLUMN package INTEGER');
+      await db.execute('ALTER TABLE LocalHistory ADD COLUMN mUserID TEXT');
+      await db.execute('ALTER TABLE LocalHistory ADD COLUMN nguoiThaoTac TEXT');
+      await db.execute('ALTER TABLE LocalHistory ADD COLUMN qtys REAL');
+      await db.execute('ALTER TABLE LocalHistory ADD COLUMN realQty REAL');
+      await db.execute('ALTER TABLE LocalHistory ADD COLUMN memo TEXT');
     }
   }
 

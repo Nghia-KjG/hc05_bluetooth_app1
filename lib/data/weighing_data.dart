@@ -75,6 +75,7 @@ class WeighingRecord {
     required this.soMay,
     this.nguoiThaoTac,
     this.device,
+    String? memo,
   });
 }
 
