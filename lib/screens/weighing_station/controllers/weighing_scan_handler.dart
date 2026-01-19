@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 import '../../../data/weighing_data.dart';
 import '../../../services/database_helper.dart';
+import '../../../services/language_service.dart';
 import '../../../services/server_status_service.dart';
 import 'weighing_calculator.dart';
 
@@ -47,13 +48,17 @@ class WeighingScanHandler {
 
     if (localData.isNotEmpty) {
       if (kDebugMode) {
-        print('🔍 Tìm thấy mã $code trong cache cục bộ.');
+        print(
+          '🔍 ${LanguageService().translate('found_in_cache').replaceAll('\$1', code)}',
+        );
       }
       return localData.first;
     } else {
       // Nếu mã không tìm thấy, trả về bản ghi với giá trị mặc định
       if (kDebugMode) {
-        print('⚠️ Mã $code không có trong cache, tạo bản ghi mặc định.');
+        print(
+          '⚠️ ${LanguageService().translate('not_in_cache_default').replaceAll('\$1', code)}',
+        );
       }
       return {
         'maCode': code,
@@ -78,7 +83,7 @@ class WeighingScanHandler {
   /// Scan mã từ server (online)
   Future<Map<String, dynamic>> scanFromServer(String code) async {
     if (kDebugMode) {
-      print('🛰️ Online Mode: Đang gọi API để kiểm tra trạng thái...');
+      print('🛰️ ${LanguageService().translate('online_checking_api')}');
     }
 
     final url = Uri.parse('$apiBaseUrl/api/scan/$code');
@@ -88,10 +93,14 @@ class WeighingScanHandler {
       return json.decode(response.body);
     } else if (response.statusCode == 404) {
       final errorData = json.decode(response.body);
-      throw WeighingException(errorData['message'] ?? 'Không tìm thấy mã');
+      throw WeighingException(
+        errorData['message'] ?? LanguageService().translate('code_not_found'),
+      );
     } else {
       throw WeighingException(
-        'Lỗi server: ${response.statusCode}, thử lại offline...',
+        LanguageService()
+            .translate('server_error_retry_offline')
+            .replaceAll('\$1', '${response.statusCode}'),
       );
     }
   }
@@ -103,73 +112,58 @@ class WeighingScanHandler {
     String scannedCode,
   ) async {
     // Lưu cache VmlWork
-    await db.insert(
-      'VmlWork',
-      {
-        'ovNO': data['ovNO'],
-        'tenPhoiKeo': data['tenPhoiKeo'],
-        'soMay': data['soMay'],
-        'memo': data['memo'],
-        'totalTargetQty': data['totalTargetQty'],
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('VmlWork', {
+      'ovNO': data['ovNO'],
+      'tenPhoiKeo': data['tenPhoiKeo'],
+      'soMay': data['soMay'],
+      'memo': data['memo'],
+      'totalTargetQty': data['totalTargetQty'],
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     // Lưu cache VmlPersion
-    await db.insert(
-      'VmlPersion',
-      {
-        'mUserID': data['mUserID'].toString(),
-        'nguoiThaoTac': data['nguoiThaoTac'],
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('VmlPersion', {
+      'mUserID': data['mUserID'].toString(),
+      'nguoiThaoTac': data['nguoiThaoTac'],
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     // Lưu cache VmlWorkS
     if (data['codes'] != null && data['codes'] is List) {
       final List<dynamic> codes = data['codes'];
       for (var codeData in codes) {
-        await db.insert(
-          'VmlWorkS',
-          {
-            'maCode': codeData['maCode'],
-            'ovNO': data['ovNO'],
-            'package': codeData['package'],
-            'mUserID': codeData['mUserID']?.toString(),
-            'qtys': codeData['qtys'],
-            'realQty': codeData['realQty'],
-            'mixTime': codeData['mixTime'],
-            'loai': (codeData['isNhapWeighed'] == 1 ||
-                    codeData['isNhapWeighed'] == true)
-                ? 'nhap'
-                : null,
-            'weighedNhapAmount': codeData['weighedNhapAmount'] ?? 0.0,
-            'weighedXuatAmount': codeData['weighedXuatAmount'] ?? 0.0,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        await db.insert('VmlWorkS', {
+          'maCode': codeData['maCode'],
+          'ovNO': data['ovNO'],
+          'package': codeData['package'],
+          'mUserID': codeData['mUserID']?.toString(),
+          'qtys': codeData['qtys'],
+          'realQty': codeData['realQty'],
+          'mixTime': codeData['mixTime'],
+          'loai':
+              (codeData['isNhapWeighed'] == 1 ||
+                      codeData['isNhapWeighed'] == true)
+                  ? 'nhap'
+                  : null,
+          'weighedNhapAmount': codeData['weighedNhapAmount'] ?? 0.0,
+          'weighedXuatAmount': codeData['weighedXuatAmount'] ?? 0.0,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     } else {
       // Không có codes array - lưu mã đơn lẻ
       final bool flagNhap =
           data['isNhapWeighed'] == true || data['isNhapWeighed'] == 1;
-      
-      await db.insert(
-        'VmlWorkS',
-        {
-          'maCode': scannedCode,
-          'ovNO': data['ovNO'],
-          'package': data['package'],
-          'mUserID': data['mUserID']?.toString(),
-          'qtys': data['qtys'],
-          'realQty': data['realQty'],
-          'mixTime': data['mixTime'],
-          'loai': flagNhap ? 'nhap' : null,
-          'weighedNhapAmount': data['weighedNhapAmount'] ?? 0.0,
-          'weighedXuatAmount': data['weighedXuatAmount'] ?? 0.0,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+
+      await db.insert('VmlWorkS', {
+        'maCode': scannedCode,
+        'ovNO': data['ovNO'],
+        'package': data['package'],
+        'mUserID': data['mUserID']?.toString(),
+        'qtys': data['qtys'],
+        'realQty': data['realQty'],
+        'mixTime': data['mixTime'],
+        'loai': flagNhap ? 'nhap' : null,
+        'weighedNhapAmount': data['weighedNhapAmount'] ?? 0.0,
+        'weighedXuatAmount': data['weighedXuatAmount'] ?? 0.0,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
   }
 
@@ -182,7 +176,7 @@ class WeighingScanHandler {
 
     if (data['codes'] != null && data['codes'] is List) {
       final List<dynamic> codes = data['codes'];
-      
+
       for (var codeData in codes) {
         // Parse mixTime từ backend nếu có
         DateTime? mixTime;
@@ -190,7 +184,11 @@ class WeighingScanHandler {
           try {
             mixTime = DateTime.parse(codeData['mixTime'].toString());
           } catch (e) {
-            if (kDebugMode) print('⚠️ Lỗi parse mixTime: $e');
+            if (kDebugMode){
+              print(
+                '⚠️ ${LanguageService().translate('parse_mixtime_error')}: $e',
+              );
+            } 
           }
         }
 
@@ -224,8 +222,10 @@ class WeighingScanHandler {
         tenPhoiKeo: data['tenPhoiKeo'],
         soMay: (data['soMay'] ?? '').toString(),
         nguoiThaoTac: data['nguoiThaoTac'],
-        weighedNhapAmount: (data['weighedNhapAmount'] as num? ?? 0.0).toDouble(),
-        weighedXuatAmount: (data['weighedXuatAmount'] as num? ?? 0.0).toDouble(),
+        weighedNhapAmount:
+            (data['weighedNhapAmount'] as num? ?? 0.0).toDouble(),
+        weighedXuatAmount:
+            (data['weighedXuatAmount'] as num? ?? 0.0).toDouble(),
       );
       records.add(newRecord);
     }
@@ -237,7 +237,10 @@ class WeighingScanHandler {
   void validateNotFullyExported(double weighedNhap, double weighedXuat) {
     if (weighedNhap > 0 && weighedXuat >= weighedNhap) {
       throw WeighingException(
-        'Mã này đã XUẤT HẾT (${weighedXuat.toStringAsFixed(2)}/${weighedNhap.toStringAsFixed(2)} kg). Không thể cân thêm!',
+        LanguageService()
+            .translate('fully_exported_cannot_weigh')
+            .replaceAll('\$1', weighedXuat.toStringAsFixed(2))
+            .replaceAll('\$2', weighedNhap.toStringAsFixed(2)),
       );
     }
   }

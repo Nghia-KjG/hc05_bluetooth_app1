@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../../data/weighing_data.dart';
 import '../../../services/database_helper.dart';
+import '../../../services/language_service.dart';
 import 'weighing_calculator.dart';
 
 /// Manager để lưu và khôi phục state
@@ -8,10 +9,7 @@ class WeighingStateManager {
   final DatabaseHelper dbHelper;
   final WeighingCalculator calculator;
 
-  WeighingStateManager({
-    required this.dbHelper,
-    required this.calculator,
-  });
+  WeighingStateManager({required this.dbHelper, required this.calculator});
 
   /// Lưu state hiện tại vào database
   Future<void> saveState({
@@ -33,7 +31,7 @@ class WeighingStateManager {
 
       // Lưu state mới
       final calculatorState = calculator.toMap();
-      
+
       await db.insert('WeighingState', {
         'activeOVNO': activeOVNO,
         'activeMemo': activeMemo,
@@ -52,10 +50,14 @@ class WeighingStateManager {
       });
 
       if (kDebugMode) {
-        print('💾 Đã lưu state: OVNO=$activeOVNO, ScannedCode=$scannedCode');
+        print(
+          '💾 ${LanguageService().translate('saved_state')}$activeOVNO, ScannedCode=$scannedCode',
+        );
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Lỗi lưu state: $e');
+      if (kDebugMode){
+        print('❌ ${LanguageService().translate('error_saving_state')}: $e');
+      }
     }
   }
 
@@ -71,7 +73,9 @@ class WeighingStateManager {
       );
 
       if (result.isEmpty) {
-        if (kDebugMode) print('ℹ️ Không có state để khôi phục');
+        if (kDebugMode){
+          print('ℹ️ ${LanguageService().translate('no_state_to_restore')}');
+        }
         return null;
       }
 
@@ -82,13 +86,15 @@ class WeighingStateManager {
 
       if (kDebugMode) {
         print(
-          '✅ Đã khôi phục state: OVNO=${state['activeOVNO']}, ScannedCode=${state['scannedCode']}',
+          '✅ ${LanguageService().translate('restored_state')}${state['activeOVNO']}, ScannedCode=${state['scannedCode']}',
         );
       }
 
       return state;
     } catch (e) {
-      if (kDebugMode) print('❌ Lỗi khôi phục state: $e');
+      if (kDebugMode){
+        print('❌ ${LanguageService().translate('error_restoring_state')}: $e');
+      }
       return null;
     }
   }
@@ -154,9 +160,7 @@ class WeighingStateManager {
       }
 
       if (kDebugMode) {
-        print(
-          '✅ Đã khôi phục ${records.length} records cho OVNO=$activeOVNO',
-        );
+        print('✅ Đã khôi phục ${records.length} records cho OVNO=$activeOVNO');
       }
 
       return records;

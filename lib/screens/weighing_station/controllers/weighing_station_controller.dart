@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../data/weighing_data.dart';
 import '../../../services/bluetooth_service.dart';
 import '../../../services/database_helper.dart';
+import '../../../services/language_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/server_status_service.dart';
 import '../../../services/settings_service.dart';
@@ -57,7 +58,7 @@ class WeighingStationController with ChangeNotifier {
   String? get scannedCode => _scannedCode;
   String? get reweighCode => _reweighCode;
   List<WeighingRecord> get records => _records;
-  
+
   double get activeTotalTargetQty => _activeTotalTargetQty;
   double get activeTotalNhap => _activeTotalNhap;
   double get activeTotalXuat => _activeTotalXuat;
@@ -165,8 +166,7 @@ class WeighingStationController with ChangeNotifier {
         if (context.mounted) {
           NotificationService().showToast(
             context: context,
-            message:
-                'Mã này đã được CÂN NHẬP (offline). Không thể chuyển về Cân Nhập.',
+            message: LanguageService().translate('already_weighed_import'),
             type: ToastType.error,
           );
         }
@@ -179,7 +179,9 @@ class WeighingStationController with ChangeNotifier {
       _reweighCode = null;
       _originalWeighingType = null;
       if (kDebugMode) {
-        print('🔓 Thoát chế độ cân lại - Người dùng chọn $newType');
+        print(
+          '🔓 ${LanguageService().translate('exit_reweigh_mode')} $newType',
+        );
       }
     }
 
@@ -198,7 +200,7 @@ class WeighingStationController with ChangeNotifier {
       if (context.mounted) {
         NotificationService().showToast(
           context: context,
-          message: 'Không tìm thấy thông tin mã $maCode',
+          message: '${LanguageService().translate('record_not_found')} $maCode',
           type: ToastType.error,
         );
       }
@@ -219,7 +221,8 @@ class WeighingStationController with ChangeNotifier {
     if (originalType == null) {
       NotificationService().showToast(
         context: context,
-        message: 'Không xác định được loại cân ban đầu của mã $maCode',
+        message:
+            '${LanguageService().translate('cannot_determine_weighing_type')} $maCode',
         type: ToastType.error,
       );
       return;
@@ -230,16 +233,18 @@ class WeighingStationController with ChangeNotifier {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Xác nhận cân lại'),
-          content: Text('Bạn có muốn cân lại mã $maCode không?'),
+          title: Text(LanguageService().translate('reweigh')),
+          content: Text(
+            '${LanguageService().translate('reweigh_code_question')} $maCode?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Không'),
+              child: Text(LanguageService().translate('cancel')),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Có'),
+              child: Text(LanguageService().translate('confirm')),
             ),
           ],
         );
@@ -273,7 +278,8 @@ class WeighingStationController with ChangeNotifier {
         if (context.mounted) {
           NotificationService().showToast(
             context: context,
-            message: 'Vui lòng scan đúng mã $_reweighCode để cân lại!',
+            message:
+                '${LanguageService().translate('reweigh_mode_scan_only')} $_reweighCode!',
             type: ToastType.error,
           );
         }
@@ -285,7 +291,9 @@ class WeighingStationController with ChangeNotifier {
     if (_scannedCode != null && _scannedCode != code) {
       await clearSavedState();
       if (kDebugMode) {
-        print('🔄 Scan mã mới: Xóa state cũ ($_scannedCode → $code)');
+        print(
+          '🔄 ${LanguageService().translate('new_code_clear_state')} ($_scannedCode → $code)',
+        );
       }
     }
 
@@ -302,7 +310,7 @@ class WeighingStationController with ChangeNotifier {
       if (isServerConnected) {
         // ONLINE MODE
         data = await _scanHandler.scanFromServer(code);
-        
+
         // Xử lý weighedAmounts từ data
         if (data['codes'] != null && data['codes'] is List) {
           final List<dynamic> codes = data['codes'];
@@ -311,8 +319,10 @@ class WeighingStationController with ChangeNotifier {
               isNhapWeighedFromServer =
                   codeData['isNhapWeighed'] == 1 ||
                   codeData['isNhapWeighed'] == true;
-              weighedNhap = (codeData['weighedNhapAmount'] as num? ?? 0.0).toDouble();
-              weighedXuat = (codeData['weighedXuatAmount'] as num? ?? 0.0).toDouble();
+              weighedNhap =
+                  (codeData['weighedNhapAmount'] as num? ?? 0.0).toDouble();
+              weighedXuat =
+                  (codeData['weighedXuatAmount'] as num? ?? 0.0).toDouble();
               break;
             }
           }
@@ -340,9 +350,10 @@ class WeighingStationController with ChangeNotifier {
 
         // Khi ở chế độ canLai, cần kiểm tra dựa trên _originalWeighingType
         String loaiToCheck = loaiFromCache;
-        if (_selectedWeighingType == WeighingType.canLai && 
+        if (_selectedWeighingType == WeighingType.canLai &&
             _originalWeighingType != null) {
-          loaiToCheck = _originalWeighingType == WeighingType.nhap ? 'nhap' : 'xuat';
+          loaiToCheck =
+              _originalWeighingType == WeighingType.nhap ? 'nhap' : 'xuat';
         }
 
         bool hasWeighedNhapInCache =
@@ -356,7 +367,7 @@ class WeighingStationController with ChangeNotifier {
         bool hasWeighedNhapInQueue = existingNhapInQueue.isNotEmpty;
 
         // Khi canLai: kiểm tra dựa trên loai ban đầu
-        if (_selectedWeighingType == WeighingType.canLai && 
+        if (_selectedWeighingType == WeighingType.canLai &&
             _originalWeighingType == WeighingType.xuat) {
           // Cân lại xuất: kiểm tra xem xuất đã được cân chưa
           hasWeighedNhapInCache = false;
@@ -367,8 +378,10 @@ class WeighingStationController with ChangeNotifier {
             hasWeighedNhapInCache || hasWeighedNhapInQueue;
 
         // Tính weighedAmounts từ cache + queue
-        final cachedNhap = (data['weighedNhapAmount'] as num? ?? 0.0).toDouble();
-        final cachedXuat = (data['weighedXuatAmount'] as num? ?? 0.0).toDouble();
+        final cachedNhap =
+            (data['weighedNhapAmount'] as num? ?? 0.0).toDouble();
+        final cachedXuat =
+            (data['weighedXuatAmount'] as num? ?? 0.0).toDouble();
 
         final nhapQueue = await db.query(
           'HistoryQueue',
@@ -403,8 +416,9 @@ class WeighingStationController with ChangeNotifier {
 
       // Tự động xác định loại cân (trừ khi đang cân lại)
       if (_selectedWeighingType != WeighingType.canLai) {
-        _selectedWeighingType =
-            _scanHandler.determineAutoWeighingType(isNhapWeighedFromServer);
+        _selectedWeighingType = _scanHandler.determineAutoWeighingType(
+          isNhapWeighedFromServer,
+        );
         _calculator.updateWeighingType(_selectedWeighingType);
       } else {
         // Đang cân lại: cập nhật originalWeighingType vào calculator
@@ -416,7 +430,8 @@ class WeighingStationController with ChangeNotifier {
       _activeMemo = data['memo'];
       _scannedCode = code;
 
-      _activeTotalTargetQty = (data['totalTargetQty'] as num? ?? 0.0).toDouble();
+      _activeTotalTargetQty =
+          (data['totalTargetQty'] as num? ?? 0.0).toDouble();
       _activeTotalNhap = (data['totalNhapWeighed'] as num? ?? 0.0).toDouble();
       _activeTotalXuat = (data['totalXuatWeighed'] as num? ?? 0.0).toDouble();
       _activeXWeighed = (data['x_WeighedNhap'] as num? ?? 0).toInt();
@@ -446,7 +461,9 @@ class WeighingStationController with ChangeNotifier {
           notificationMessage = 'Scan mã $code thành công!\nLoại: CÂN LẠI';
         } else {
           final typeText =
-              _selectedWeighingType == WeighingType.nhap ? "CÂN NHẬP" : "CÂN XUẤT";
+              _selectedWeighingType == WeighingType.nhap
+                  ? "CÂN NHẬP"
+                  : "CÂN XUẤT";
           notificationMessage = 'Scan mã $code thành công!\nLoại: $typeText';
         }
 
@@ -459,7 +476,10 @@ class WeighingStationController with ChangeNotifier {
 
       notifyListeners();
     } on WeighingException catch (e) {
-      if (kDebugMode) print('⚖️ Lỗi nghiệp vụ: ${e.message}');
+      if (kDebugMode){
+        print(
+          '⚖️ ${LanguageService().translate('business_logic_error')}: ${e.message}',
+        );}
       if (context.mounted) {
         NotificationService().showToast(
           context: context,
@@ -468,7 +488,8 @@ class WeighingStationController with ChangeNotifier {
         );
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Lỗi không xác định: $e');
+      if (kDebugMode){
+        print('❌ ${LanguageService().translate('unknown_error')}: $e');}
       if (context.mounted) {
         NotificationService().showToast(
           context: context,
@@ -488,7 +509,7 @@ class WeighingStationController with ChangeNotifier {
     if (_records.isEmpty || _scannedCode == null) {
       NotificationService().showToast(
         context: context,
-        message: 'Vui lòng scan mã trước.',
+        message: LanguageService().translate('no_code_scanned'),
         type: ToastType.error,
       );
       return false;
@@ -499,7 +520,10 @@ class WeighingStationController with ChangeNotifier {
       orElse: () => _records[0],
     );
 
-    if (kDebugMode) print('🎯 Hoàn tất cân cho mã: ${currentRecord.maCode}');
+    if (kDebugMode){
+      print(
+        '🎯 ${LanguageService().translate('completing_weighing_for')}: ${currentRecord.maCode}',
+      );}
 
     if (currentRecord.isSuccess == true) return true;
 
@@ -604,7 +628,8 @@ class WeighingStationController with ChangeNotifier {
       }
 
       if (context.mounted) {
-        final String actionText = loaiCan == 'nhapLai' || loaiCan == 'xuatLai' ? 'Cân lại' : 'Đã cân';
+        final String actionText =
+            loaiCan == 'nhapLai' || loaiCan == 'xuatLai' ? 'Cân lại' : 'Đã cân';
         NotificationService().showToast(
           context: context,
           message:
@@ -618,7 +643,10 @@ class WeighingStationController with ChangeNotifier {
       notifyListeners();
       return true;
     } on WeighingException catch (e) {
-      if (kDebugMode) print('⚖️ Lỗi nghiệp vụ cân: ${e.message}');
+      if (kDebugMode){
+        print(
+          '⚖️ ${LanguageService().translate('weighing_business_error')}: ${e.message}',
+        );}
       if (context.mounted) {
         NotificationService().showToast(
           context: context,
@@ -628,7 +656,10 @@ class WeighingStationController with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      if (kDebugMode) print('❌ Lỗi nghiêm trọng khi hoàn tất: $e');
+      if (kDebugMode){
+        print(
+          '❌ ${LanguageService().translate('critical_error_completing')}: $e',
+        );}
       if (context.mounted) {
         NotificationService().showToast(
           context: context,
@@ -677,13 +708,15 @@ class WeighingStationController with ChangeNotifier {
     _activeOVNO = state['activeOVNO'] as String?;
     _activeMemo = state['activeMemo'] as String?;
     _scannedCode = state['scannedCode'] as String?;
-    _activeTotalTargetQty = (state['activeTotalTargetQty'] as num?)?.toDouble() ?? 0.0;
+    _activeTotalTargetQty =
+        (state['activeTotalTargetQty'] as num?)?.toDouble() ?? 0.0;
     _activeTotalNhap = (state['activeTotalNhap'] as num?)?.toDouble() ?? 0.0;
     _activeTotalXuat = (state['activeTotalXuat'] as num?)?.toDouble() ?? 0.0;
     _activeXWeighed = (state['activeXWeighed'] as num?)?.toInt() ?? 0;
     _activeYTotal = (state['activeYTotal'] as num?)?.toInt() ?? 0;
 
-    final weighingTypeIndex = (state['selectedWeighingType'] as num?)?.toInt() ?? 0;
+    final weighingTypeIndex =
+        (state['selectedWeighingType'] as num?)?.toInt() ?? 0;
     _selectedWeighingType = WeighingType.values[weighingTypeIndex];
 
     // Khôi phục records

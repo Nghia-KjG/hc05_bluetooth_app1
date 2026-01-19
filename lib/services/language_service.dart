@@ -75,6 +75,7 @@ class LanguageService extends ChangeNotifier {
 
       // Home Screen
       'weighing_station': 'Trạm cân',
+      'weighing_warehouse': 'Kho cân',
       'dashboard': 'Dash Board',
       'history': 'Lịch sử cân',
       'pending_data': 'Dữ liệu chờ',
@@ -211,6 +212,51 @@ class LanguageService extends ChangeNotifier {
       'batch_weight': 'Khối Lượng Mẻ (kg)',
       'import_weighed': 'Khối Lượng Đã Cân Nhập (kg)',
       'export_weighed': 'Khối Lượng Đã Cân Xuất (kg)',
+
+      // Weighing Controller Messages
+      'already_weighed_import':
+          'Mã này đã được cân nhập (offline). Không thể chọn lại cân nhập!',
+      'exit_reweigh_mode': 'Thoát chế độ cân lại - Người dùng chọn',
+      'record_not_found': 'Không tìm thấy record để cân lại',
+      'cannot_determine_weighing_type':
+          'Không xác định được loại cân ban đầu của mã',
+      'reweigh': 'Cân lại',
+      'reweigh_code_question': 'Bạn muốn cân lại mã',
+      'reweigh_mode_scan_only': 'Chế độ cân lại: Chỉ được scan mã',
+      'reweigh_mode_activated': 'Đã vào chế độ cân lại cho mã',
+      'new_code_clear_state': 'Scan mã mới: Xóa state cũ',
+      'business_logic_error': 'Lỗi nghiệp vụ',
+      'unknown_error': 'Lỗi không xác định',
+      'no_code_scanned': 'Chưa scan mã nào. Vui lòng scan mã trước!',
+      'completing_weighing_for': 'Hoàn tất cân cho mã',
+      'saved_state': 'Đã lưu state: OVNO=',
+      'restored_state': 'Đã khôi phục state: OVNO=',
+      'no_state_to_restore': 'Không có state để khôi phục',
+      'error_saving_state': 'Lỗi lưu state',
+      'error_restoring_state': 'Lỗi khôi phục state',
+
+      // Completion Handler Messages
+      'online_mode_sending': 'Online Mode: Đang gửi lên server...',
+      'endpoint': 'Endpoint',
+      'weighing_type': 'loaiCan',
+      'offline_mode_saving': 'Offline Mode: Đang lưu "Hoàn tất" vào cache...',
+      'deleted_old_import_record': 'Đã xóa bản ghi cân nhập cũ trong queue',
+      'deleted_old_export_record': 'Đã xóa bản ghi cân xuất cũ trong queue',
+      'already_weighed_import_pending':
+          'Mã này đã được cân nhập (đang chờ đồng bộ).',
+      'already_weighed_import_synced': 'Mã này đã được cân nhập (đã đồng bộ).',
+      'not_weighed_import_offline': 'Lỗi: Mã này CHƯA CÂN NHẬP (offline).',
+      'weighing_business_error': 'Lỗi nghiệp vụ cân',
+      'critical_error_completing': 'Lỗi nghiêm trọng khi hoàn tất',
+
+      // Scan Handler Messages
+      'found_in_cache': 'Tìm thấy mã trong cache cục bộ.',
+      'not_in_cache_default': 'Mã không có trong cache, tạo bản ghi mặc định.',
+      'online_checking_api':
+          'Online Mode: Đang gọi API để kiểm tra trạng thái...',
+      'code_not_found': 'Không tìm thấy mã',
+      'fully_exported_cannot_weigh': 'Mã này đã XUẤT HẾT. Không thể cân thêm!',
+      'parse_mixtime_error': 'Lỗi parse mixTime',
     },
     'en': {
       // Login Screen
@@ -252,6 +298,7 @@ class LanguageService extends ChangeNotifier {
 
       // Home Screen
       'weighing_station': 'Weighing Station',
+      'weighing_warehouse': 'Weighing Warehouse',
       'dashboard': 'Dashboard',
       'history': 'Weighing History',
       'pending_data': 'Pending Data',
@@ -388,6 +435,53 @@ class LanguageService extends ChangeNotifier {
       'batch_weight': 'Batch Weight (kg)',
       'import_weighed': 'Imported Weight (kg)',
       'export_weighed': 'Exported Weight (kg)',
+
+      // Weighing Controller Messages
+      'already_weighed_import':
+          'This code has already been weighed for import (offline). Cannot select import again!',
+      'exit_reweigh_mode': 'Exited reweigh mode - User selected',
+      'record_not_found': 'Record not found for reweighing',
+      'cannot_determine_weighing_type':
+          'Cannot determine original weighing type for code',
+      'reweigh': 'Reweigh',
+      'reweigh_code_question': 'Do you want to reweigh code',
+      'reweigh_mode_scan_only': 'Reweigh mode: Only scan code',
+      'reweigh_mode_activated': 'Entered reweigh mode for code',
+      'new_code_clear_state': 'New code scanned: Clearing old state',
+      'business_logic_error': 'Business logic error',
+      'unknown_error': 'Unknown error',
+      'no_code_scanned': 'No code scanned. Please scan code first!',
+      'completing_weighing_for': 'Completing weighing for code',
+      'saved_state': 'Saved state: OVNO=',
+      'restored_state': 'Restored state: OVNO=',
+      'no_state_to_restore': 'No state to restore',
+      'error_saving_state': 'Error saving state',
+      'error_restoring_state': 'Error restoring state',
+
+      // Completion Handler Messages
+      'online_mode_sending': 'Online Mode: Sending to server...',
+      'endpoint': 'Endpoint',
+      'weighing_type': 'weighingType',
+      'offline_mode_saving': 'Offline Mode: Saving "Complete" to cache...',
+      'deleted_old_import_record': 'Deleted old import record in queue',
+      'deleted_old_export_record': 'Deleted old export record in queue',
+      'already_weighed_import_pending':
+          'This code has already been weighed for import (pending sync).',
+      'already_weighed_import_synced':
+          'This code has already been weighed for import (synced).',
+      'not_weighed_import_offline':
+          'Error: This code has NOT been weighed for import (offline).',
+      'weighing_business_error': 'Weighing business error',
+      'critical_error_completing': 'Critical error when completing',
+
+      // Scan Handler Messages
+      'found_in_cache': 'Found code in local cache.',
+      'not_in_cache_default': 'Code not in cache, creating default record.',
+      'online_checking_api': 'Online Mode: Calling API to check status...',
+      'code_not_found': 'Code not found',
+      'fully_exported_cannot_weigh':
+          'This code has been FULLY EXPORTED. Cannot weigh more!',
+      'parse_mixtime_error': 'Error parsing mixTime',
     },
   };
 }
