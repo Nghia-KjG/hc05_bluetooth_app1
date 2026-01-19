@@ -588,6 +588,7 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                 WeighingTable(
                   records: _controller.records,
                   weighingType: _controller.selectedWeighingType,
+                  originalWeighingType: _controller.originalWeighingType,
                   activeOVNO: _controller.activeOVNO,
                   activeMemo: _controller.activeMemo,
                   scannedCode: _controller.scannedCode,

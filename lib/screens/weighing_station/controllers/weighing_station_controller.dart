@@ -66,6 +66,7 @@ class WeighingStationController with ChangeNotifier {
   int get activeYTotal => _activeYTotal;
 
   WeighingType get selectedWeighingType => _selectedWeighingType;
+  WeighingType? get originalWeighingType => _originalWeighingType;
 
   // Kiểm tra xem có đang ở chế độ xuất không (bao gồm cả cân xuất lại)
   bool get isXuatMode {

@@ -6,6 +6,7 @@ import '../controllers/weighing_station_controller.dart'; // Giữ import này
 class WeighingTable extends StatelessWidget {
   final List<WeighingRecord> records;
   final WeighingType weighingType;
+  final WeighingType? originalWeighingType; // Loại cân gốc khi canLai
   final String? activeOVNO;
   final String? activeMemo;
   final String? scannedCode; // Mã được scan gần nhất
@@ -22,6 +23,7 @@ class WeighingTable extends StatelessWidget {
     super.key,
     required this.records,
     required this.weighingType,
+    this.originalWeighingType,
     this.activeOVNO,
     this.activeMemo,
     this.scannedCode,
@@ -74,9 +76,10 @@ class WeighingTable extends StatelessWidget {
 
     // Header động cho cột Khối Lượng Đã Cân
     final String khoiLuongDaCanHeader =
-        (weighingType == WeighingType.nhap)
-            ? _languageService.translate('import_weighed')
-            : _languageService.translate('export_weighed');
+        (weighingType == WeighingType.xuat || 
+         (weighingType == WeighingType.canLai && originalWeighingType == WeighingType.xuat))
+            ? _languageService.translate('export_weighed')
+            : _languageService.translate('import_weighed');
 
     return AnimatedBuilder(
       animation: _languageService,
@@ -219,28 +222,24 @@ class WeighingTable extends StatelessWidget {
                                       3,
                                     ), // Mẻ/Tồn
                                     // Khối Lượng Đã Cân:
-                                    // - Nếu là mã được scan:
-                                    //   + Cân nhập: hiển thị realQty hoặc '---'
-                                    //   + Cân xuất: hiển thị weighedXuatAmount
-                                    // - Nếu không phải mã scan:
+                                    // - Nếu cân nhập lại (canLai + originalWeighingType == nhap) VÀ thành công → hiển thị '---'
+                                    // - Nếu là mã được scan (đang cân hoặc vừa cân xong):
+                                    //   + Hiển thị realQty (khối lượng vừa cân)
+                                    // - Nếu không phải mã scan (đã cân trước đó):
                                     //   + Cân nhập: hiển thị weighedNhapAmount
                                     //   + Cân xuất: hiển thị weighedXuatAmount
                                     dataCell(
-                                      record.maCode == scannedCode
-                                          ? (weighingType == WeighingType.nhap
-                                              ? (record.realQty
-                                                      ?.toStringAsFixed(2) ??
-                                                  '---')
-                                              : (record.weighedXuatAmount
-                                                      ?.toStringAsFixed(2) ??
-                                                  '---'))
-                                          : (weighingType == WeighingType.nhap
-                                              ? (record.weighedNhapAmount
-                                                      ?.toStringAsFixed(2) ??
-                                                  '---')
-                                              : (record.weighedXuatAmount
-                                                      ?.toStringAsFixed(2) ??
-                                                  '---')),
+                                      (weighingType == WeighingType.canLai && 
+                                       originalWeighingType == WeighingType.nhap &&
+                                       record.maCode == scannedCode &&
+                                       record.isSuccess == true)
+                                          ? '---' // Cân nhập lại thành công: không hiển thị
+                                          : (record.maCode == scannedCode
+                                              ? (record.realQty?.toStringAsFixed(2) ?? '---')
+                                              : (weighingType == WeighingType.nhap || 
+                                                 (weighingType == WeighingType.canLai && originalWeighingType == WeighingType.nhap))
+                                                  ? (record.weighedNhapAmount?.toStringAsFixed(2) ?? '---')
+                                                  : (record.weighedXuatAmount?.toStringAsFixed(2) ?? '---')),
                                       3,
                                     ), // Đã Cân
                                     Builder(
