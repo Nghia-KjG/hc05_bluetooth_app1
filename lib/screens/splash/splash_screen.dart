@@ -58,11 +58,11 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: Colors.white),
+            CircularProgressIndicator(color: Color.fromARGB(255, 0, 0, 0)),
             SizedBox(height: 20),
             Text(
               'Đang khởi tạo ứng dụng...',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: Color.fromARGB(255, 0, 0, 0), fontSize: 16),
             ),
           ],
         ),

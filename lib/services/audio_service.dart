@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 /// Service để phát tiếng bíp khi cân thành công
 /// Sử dụng HapticFeedback + gọi native sound
@@ -11,34 +12,22 @@ class AudioService {
 
   static const platform = MethodChannel('com.hc.bluetooth.method_channel');
   static const audioChannel = MethodChannel('com.hc.audio.channel');
+  final AudioPlayer _player = AudioPlayer();
 
-  /// Phát tiếng bíp ngắn khi cân thành công
+  /// Phát âm thanh thành công khi cân
   Future<void> playSuccessBeep() async {
     try {
-      if (kDebugMode) print('🔊 Đang phát tiếng bíp thành công...');
+      if (kDebugMode) print('🔊 Đang phát âm thanh thành công...');
       
-      // 1. Phát rung (mạnh)
-      await HapticFeedback.heavyImpact();
-      if (kDebugMode) print('✅ Rung heavyImpact đã phát');
-
-      // 2. Cố gắng gọi ToneGenerator qua native code
-      try {
-        await audioChannel.invokeMethod('playTone', {
-          'type': 'TONE_CDMA_CONFIRM',
-          'duration': 200
-        });
-        if (kDebugMode) print('✅ Âm thanh Tone đã phát');
-      } catch (e) {
-        if (kDebugMode) print('⚠️ ToneGenerator không hoạt động: $e');
-      }
-
-      // 3. Rung thêm lần nữa để tăng cảm nhận
-      await Future.delayed(const Duration(milliseconds: 150));
-      await HapticFeedback.mediumImpact();
-      if (kDebugMode) print('✅ Rung mediumImpact lần 2 đã phát');
+      // Phát âm thanh từ file mp3
+      await _player.stop();
+      await _player.setVolume(1.0);
+      final bytes = await rootBundle.load('lib/assets/audio/success.mp3');
+      await _player.play(BytesSource(bytes.buffer.asUint8List()));
       
+      if (kDebugMode) print('✅ Âm thanh thành công đã phát');
     } catch (e) {
-      if (kDebugMode) print('❌ Lỗi phát tiếng bíp: $e');
+      if (kDebugMode) print('❌ Lỗi phát âm thanh: $e');
     }
   }
 

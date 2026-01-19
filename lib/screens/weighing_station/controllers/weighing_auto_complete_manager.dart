@@ -121,6 +121,7 @@ class WeighingAutoCompleteManager {
           final success = await onCompleteWeighing!(context, currentWeight);
 
           if (success) {
+            if (kDebugMode) print('✅ Cân thành công! Kiểm tra settings.beepOnSuccess = ${settings.beepOnSuccess}');
             if (settings.beepOnSuccess) {
               if (kDebugMode) print('🎵 Gọi playSuccessBeep()...');
               await AudioService().playSuccessBeep();

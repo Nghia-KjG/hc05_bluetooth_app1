@@ -11,6 +11,7 @@ import '../../../services/language_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/server_status_service.dart';
 import '../../../services/settings_service.dart';
+import '../../../services/audio_service.dart';
 import 'weighing_auto_complete_manager.dart';
 import 'weighing_calculator.dart';
 import 'weighing_completion_handler.dart';
@@ -649,6 +650,16 @@ class WeighingStationController with ChangeNotifier {
         _selectedWeighingType = WeighingType.nhap;
         _reweighCode = null;
         _originalWeighingType = null;
+      }
+
+      // Phát âm thanh thành công (fallback ngoài auto-complete)
+      if (SettingsService().beepOnSuccess) {
+        try {
+          if (kDebugMode) print('🎵 playSuccessBeep() từ completeCurrentWeighing');
+          await AudioService().playSuccessBeep();
+        } catch (e) {
+          if (kDebugMode) print('🔇 Lỗi playSuccessBeep(): $e');
+        }
       }
 
       if (context.mounted) {
