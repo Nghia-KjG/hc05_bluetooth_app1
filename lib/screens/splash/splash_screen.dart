@@ -39,6 +39,7 @@ class _SplashScreenState extends State<SplashScreen> {
         permissions.addAll([
           Permission.bluetoothScan,
           Permission.bluetoothConnect,
+          Permission.location,
         ]);
       } else {
         permissions.add(Permission.location);

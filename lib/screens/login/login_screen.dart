@@ -31,8 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isCheckingRole = false; // Đang kiểm tra role
   Timer? _debounceTimer; // Timer cho debounce
 
-  // Địa chỉ server nội bộ
-
   @override
   void initState() {
     super.initState();

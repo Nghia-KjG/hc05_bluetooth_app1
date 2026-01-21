@@ -6,21 +6,6 @@ import 'package:flutter/foundation.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  // --- MAP CÁC LỰA CHỌN ---
-  final Map<String, String> _historyRangeOptions = const {
-    '30': '30 Ngày',
-    '7': '7 Ngày',
-    '15': '15 Ngày',
-    '90': '90 Ngày',
-    'all': 'Tất cả lịch sử',
-  };
-
-  final Map<int, String> _stabilizationDelayOptions = const {
-    3: '3 giây',
-    5: '5 giây',
-    10: '10 giây',
-  };
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
