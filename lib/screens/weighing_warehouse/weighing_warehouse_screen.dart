@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../services/bluetooth_service.dart';
 import '../../widgets/main_app_bar.dart';
 import 'widgets/summary_table.dart';
@@ -398,7 +399,7 @@ class _WeighingWarehouseScreenState extends State<WeighingWarehouseScreen> {
     if (value.isEmpty) return;
 
     // TODO: Implement scan logic
-    print('Scanned: $value');
+    if (kDebugMode) print('Scanned: $value');
 
     // Clear and refocus
     _scanController.clear();

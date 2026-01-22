@@ -13,6 +13,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // Required for libraries (e.g., ota_update) that need desugaring support
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -47,4 +49,6 @@ dependencies {
     // Add minimal hutool core for dependencies required by `bluetoothlibrary` AAR
     // (previously used `hutool-all` which pulled in many desktop/server-only dependencies)
     implementation("cn.hutool:hutool-core:5.8.25")
+    // Desugaring library needed for ota_update (Java 8+ APIs on older Android)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

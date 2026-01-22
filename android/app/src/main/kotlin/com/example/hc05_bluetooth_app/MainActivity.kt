@@ -10,11 +10,16 @@ import com.hc.bluetoothlibrary.DeviceModule
 import com.hc.bluetoothlibrary.IBluetooth
 import android.media.ToneGenerator
 import android.media.AudioManager
+import android.content.Intent
+import android.net.Uri
+import androidx.core.content.FileProvider
+import java.io.File
 
 class MainActivity: FlutterActivity(), IBluetooth {
     private val METHOD_CHANNEL = "com.hc.bluetooth.method_channel"
     private val EVENT_CHANNEL = "com.hc.bluetooth.event_channel"
     private val AUDIO_CHANNEL = "com.hc.audio.channel"
+    private val INSTALL_CHANNEL = "com.hc.install.channel"
 
     private lateinit var bluetoothManage: AllBluetoothManage
     private var eventSink: EventChannel.EventSink? = null
@@ -103,6 +108,27 @@ class MainActivity: FlutterActivity(), IBluetooth {
             }
         }
 
+        // Install Channel để cài đặt APK
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, INSTALL_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "installApk" -> {
+                    try {
+                        val apkPath = call.argument<String>("apkPath")
+                        if (apkPath != null) {
+                            installApk(apkPath)
+                            result.success("Đã mở trình cài đặt")
+                        } else {
+                            result.error("ERROR", "Đường dẫn APK không hợp lệ", null)
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("InstallDebug", "❌ Lỗi cài đặt: ${e.message}")
+                        result.error("ERROR", "Lỗi cài đặt: ${e.message}", null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL).setStreamHandler(
             object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, sink: EventChannel.EventSink) {
@@ -123,6 +149,44 @@ class MainActivity: FlutterActivity(), IBluetooth {
             android.util.Log.i("AudioDebug", "🔊 Phát Tone CONFIRM ($durationMs ms)")
         } catch (e: Exception) {
             android.util.Log.e("AudioDebug", "❌ Lỗi ToneGenerator: ${e.message}")
+        }
+    }
+    
+    /// Cài đặt APK sử dụng FileProvider
+    private fun installApk(apkPath: String) {
+        try {
+            val apkFile = File(apkPath)
+            if (!apkFile.exists()) {
+                android.util.Log.e("InstallDebug", "❌ File không tồn tại: $apkPath")
+                return
+            }
+            
+            android.util.Log.i("InstallDebug", "📦 Cài đặt APK: $apkPath")
+            
+            val intent = Intent(Intent.ACTION_VIEW)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                // Android 7.0+ cần dùng FileProvider
+                val apkUri: Uri = FileProvider.getUriForFile(
+                    this,
+                    "${applicationContext.packageName}.fileprovider",
+                    apkFile
+                )
+                intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                android.util.Log.i("InstallDebug", "🔗 FileProvider URI: $apkUri")
+            } else {
+                // Android 6.0 trở xuống
+                val apkUri = Uri.fromFile(apkFile)
+                intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
+            }
+            
+            startActivity(intent)
+            android.util.Log.i("InstallDebug", "✅ Đã mở trình cài đặt")
+        } catch (e: Exception) {
+            android.util.Log.e("InstallDebug", "❌ Lỗi: ${e.message}")
+            e.printStackTrace()
         }
     }
     

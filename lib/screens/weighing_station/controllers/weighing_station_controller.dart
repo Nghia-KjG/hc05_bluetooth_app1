@@ -352,11 +352,12 @@ class WeighingStationController with ChangeNotifier {
         final dynamic realQtyFromCache = data['realQty'];
 
         // Khi ở chế độ canLai, cần kiểm tra dựa trên _originalWeighingType
-        String loaiToCheck = loaiFromCache;
         if (_selectedWeighingType == WeighingType.canLai &&
             _originalWeighingType != null) {
-          loaiToCheck =
+          // loaiToCheck sẽ được xác định dựa trên _originalWeighingType
+          final loaiToCheck =
               _originalWeighingType == WeighingType.nhap ? 'nhap' : 'xuat';
+          debugPrint('🔍 Kiểm tra loại: $loaiToCheck');
         }
 
         bool hasWeighedNhapInCache =

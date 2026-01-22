@@ -28,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String _selectedFactory = 'LHG';
   bool _isLoading = false;
   String? _userRole; // Lưu role của user
+  // ignore: unused_field
   bool _isCheckingRole = false; // Đang kiểm tra role
   Timer? _debounceTimer; // Timer cho debounce
 

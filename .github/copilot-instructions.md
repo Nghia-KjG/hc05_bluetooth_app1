@@ -12,6 +12,7 @@
 - `BluetoothService`: Android MethodChannel/EventChannel for HC-05 scan/connect/data streams. Uses `ValueNotifier` for state (`scanResults`, `connectedDevice`, `currentWeight`).
 - `WeightStabilityMonitor`: Tracks weight samples; triggers `onStable` callback when readings stabilize within ±20g threshold for configured duration (default 5s).
 - `SyncService`: Two-way API sync using HTTP; manages offline `HistoryQueue` table for work orders pending upload.
+- `UpdateService`: Checks app version at startup via `/api/app-update/check`; downloads APK from `/api/app-update/download` and triggers OTA install via `OtaUpdate` package.
 - `DatabaseHelper` (SQLite): Offline cache via sqflite (`VmlWorkS`, `VmlWork`, `HistoryQueue`, `VmlPersion`, etc.).
 - `SettingsService`: Stores user preferences (auto-complete enabled, stabilization delay 3/5/10s, audio feedback).
 - `AudioService`: Native Android ToneGenerator via MethodChannel for success beeps + `HapticFeedback` vibration.
@@ -27,10 +28,11 @@
 
 ### Key Data Flows
 
-1. **Bluetooth Connection**: `BluetoothService` → EventChannel receives `scanResult`/`status`/`weight` events → UI updates via `ValueNotifier`.
-2. **Weight Stability Detection**: Real-time samples → `WeightStabilityMonitor._recentWeights` buffer → checks threshold every 500ms → calls `onStable` when stable.
-3. **Auto-Complete Workflow**: Weight stable → delay elapsed → `WeighingStationController.completeWork()` → POST to `/api/sync/work` → log to `HistoryQueue` on success.
-4. **Offline Sync**: App periodically syncs via `SyncService`; failed requests queued in `HistoryQueue` with exponential backoff retry.
+1. **App Startup & Update Check**: `SplashScreen` → `UpdateService.checkUpdate()` calls `/api/app-update/check` → if newer version detected, shows `UpdateAlertDialog` → on confirm, downloads APK and triggers `OtaUpdate.execute()`.
+2. **Bluetooth Connection**: `BluetoothService` → EventChannel receives `scanResult`/`status`/`weight` events → UI updates via `ValueNotifier`.
+3. **Weight Stability Detection**: Real-time samples → `WeightStabilityMonitor._recentWeights` buffer → checks threshold every 500ms → calls `onStable` when stable.
+4. **Auto-Complete Workflow**: Weight stable → delay elapsed → `WeighingStationController.completeWork()` → POST to `/api/sync/work` → log to `HistoryQueue` on success.
+5. **Offline Sync**: App periodically syncs via `SyncService`; failed requests queued in `HistoryQueue` with exponential backoff retry.
 
 ## Critical Patterns
 
@@ -115,17 +117,32 @@ sqlite3 weighing_app.db ".schema"
 
 | File | Purpose |
 |------|---------|
-| [lib/main.dart](lib/main.dart) | App entry; initializes `.env`, SettingsService, LanguageService. |
-| [lib/services/bluetooth_service.dart](lib/services/bluetooth_service.dart) | Singleton for HC-05 scan/connect/data. |
-| [lib/services/weight_stability_monitor.dart](lib/services/weight_stability_monitor.dart) | Detects weight stability via buffer + threshold. |
-| [lib/services/sync_service.dart](lib/services/sync_service.dart) | Manages API sync + offline HistoryQueue. |
-| [lib/services/settings_service.dart](lib/services/settings_service.dart) | Stores user preferences (auto-complete, delays, audio). |
-| [lib/screens/weighing_station/weighing_station_screen.dart](lib/screens/weighing_station/weighing_station_screen.dart) | Main workflow UI; uses WeighingStationController. |
-| [lib/screens/weighing_station/controllers/weighing_station_controller.dart](lib/screens/weighing_station/controllers/weighing_station_controller.dart) | Orchestrates scan → load → weigh → complete. |
-| [lib/services/database_helper.dart](lib/services/database_helper.dart) | SQLite schema + CRUD for all tables. |
-| [README.md](README.md) | High-level feature overview + architecture summary. |
+| [lib/services/update_service.dart](../lib/services/update_service.dart) | Checks version via API, compares versions, downloads APK from server. |
+| [lib/screens/splash/splash_screen.dart](../lib/screens/splash/splash_screen.dart) | Initializes permissions, checks for app updates on startup. |
+| [lib/screens/splash/widgets/update_alert_dialog.dart](../lib/screens/splash/widgets/update_alert_dialog.dart) | Displays version info + changelog when update available. |
+| [lib/screens/splash/widgets/update_progress_dialog.dart](../lib/screens/splash/widgets/update_progress_dialog.dart) | Shows LinearProgressIndicator during APK download. |
+| [lib/main.dart](../lib/main.dart) | App entry; initializes `.env`, SettingsService, LanguageService. |
+| [lib/services/bluetooth_service.dart](../lib/services/bluetooth_service.dart) | Singleton for HC-05 scan/connect/data. |
+| [lib/services/weight_stability_monitor.dart](../lib/services/weight_stability_monitor.dart) | Detects weight stability via buffer + threshold. |
+| [lib/services/sync_service.dart](../lib/services/sync_service.dart) | Manages API sync + offline HistoryQueue. |
+| [lib/services/settings_service.dart](../lib/services/settings_service.dart) | Stores user preferences (auto-complete, delays, audio). |
+| [lib/screens/weighing_station/weighing_station_screen.dart](../lib/screens/weighing_station/weighing_station_screen.dart) | Main workflow UI; uses WeighingStationController. |
+| [lib/screens/weighing_station/controllers/weighing_station_controller.dart](../lib/screens/weighing_station/controllers/weighing_station_controller.dart) | Orchestrates scan → load → weigh → complete. |
+| [lib/services/database_helper.dart](../lib/services/database_helper.dart) | SQLite schema + CRUD for all tables. |
+| [README.md](../README.md) | High-level feature overview + architecture summary. |
 
 ## Common Development Tasks
+
+### Modifying Weight Stability Logic
+1. Edit `WeightStabilityMonitor._checkStability()` in [lib/services/weight_stability_monitor.dart](../lib/services/weight_stability_monitor.dart).
+2. Adjust `_stabilityThreshold` (0.02 = ±20g) or `_stabilizationDelay` as needed.
+3. Test via `_startSimulatingWeight()` simulation in WeighingStationScreen.
+1. **Backend API** must expose:
+   - `POST /api/app-update/check`: Receive `currentVersion`, return `{latestVersion, changelog, downloadUrl}`.
+   - `GET /api/app-update/download`: Serve APK binary with Content-Length header for progress tracking.
+2. **UpdateService** compares versions using semver logic (e.g., "1.0.1" > "1.0.0").
+3. **SplashScreen** calls `_checkAndPromptUpdate()` after permission check; blocks navigation until user responds or update completes.
+4. **Update dialog flow**: Alert → Download (progress bar) → OtaUpdate.execute() → system installer.
 
 ### Adding a New Setting
 1. Add field to `SettingsService._settings` dict + getter/setter.
@@ -133,7 +150,7 @@ sqlite3 weighing_app.db ".schema"
 3. Bind to controller via `_onSettingsChanged()` listener if reactive (e.g., auto-complete toggle).
 
 ### Modifying Weight Stability Logic
-1. Edit `WeightStabilityMonitor._checkStability()` in [lib/services/weight_stability_monitor.dart](lib/services/weight_stability_monitor.dart).
+1. Edit `WeightStabilityMonitor._checkStability()` in [lib/services/weight_stability_monitor.dart](../lib/services/weight_stability_monitor.dart).
 2. Adjust `_stabilityThreshold` (0.02 = ±20g) or `_stabilizationDelay` as needed.
 3. Test via `_startSimulatingWeight()` simulation in WeighingStationScreen.
 
@@ -155,6 +172,8 @@ sqlite3 weighing_app.db ".schema"
 
 ## Dependencies to Know
 
+| `ota_update` | Execute Android system installer for APK; handles OTA installation flow. |
+| `package_info_plus` | Retrieve app version string for update comparison. |
 | Package | Usage |
 |---------|-------|
 | `sqflite` | SQLite database. |
