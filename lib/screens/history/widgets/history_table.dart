@@ -70,15 +70,15 @@ class HistoryTable extends StatelessWidget {
           IntrinsicHeight(
             child: Row(
               children: [
-                headerCell('Mã Code', 3), verticalDivider(),
-                headerCell('Tên Phôi Keo', 4), verticalDivider(),
-                headerCell('Số Mẻ', 3), verticalDivider(),
-                headerCell('Số Máy', 3), verticalDivider(),
-                headerCell('Người Thao Tác', 4), verticalDivider(),
-                headerCell('Thời Gian Cân', 4), verticalDivider(),
-                headerCell('KL Mẻ(kg)', 3), verticalDivider(),
-                headerCell('KL Đã Cân(kg)', 3), verticalDivider(),
-                headerCell('Loại Cân', 3), 
+                headerCell(LanguageService().translate('code_header'), 3), verticalDivider(),
+                headerCell(LanguageService().translate('glue_name'), 4), verticalDivider(),
+                headerCell(LanguageService().translate('batch_number'), 3), verticalDivider(),
+                headerCell(LanguageService().translate('machine_number'), 3), verticalDivider(),
+                headerCell(LanguageService().translate('operator'), 4), verticalDivider(),
+                headerCell(LanguageService().translate('weighing_time'), 4), verticalDivider(),
+                headerCell(LanguageService().translate('batch_weight'), 3), verticalDivider(),
+                headerCell(LanguageService().translate('weighed_weight'), 3), verticalDivider(),
+                headerCell(LanguageService().translate('weighing_type_label'), 3), 
               ],
             ),
           ),
@@ -88,7 +88,7 @@ class HistoryTable extends StatelessWidget {
             child: Container(
               color: Colors.white,
               child: records.isEmpty // Đổi tên 'displayList' thành 'records'
-                ? Center(child: Text('Không có dữ liệu lịch sử.', style: TextStyle(color: Colors.grey[600])))
+                ? Center(child: Text(LanguageService().translate('no_history_data'), style: TextStyle(color: Colors.grey[600])))
                 : ListView.builder(
                     itemCount: records.length, // Dùng list từ controller
                     itemBuilder: (context, index) {

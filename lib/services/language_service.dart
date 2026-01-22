@@ -204,14 +204,18 @@ class LanguageService extends ChangeNotifier {
       'batch_count': 'Số mẻ đã cân',
 
       // Weighing Table Headers
+      'code_header': 'Mã Code',
       'glue_name': 'Tên Phôi Keo',
       'batch_number': 'Số Mẻ',
       'machine_number': 'Số Máy',
       'operator': 'Người Thao Tác',
       'weighing_time': 'Thời Gian Cân',
       'batch_weight': 'Khối Lượng Mẻ (kg)',
+      'weighed_weight': 'KL Đã Cân(kg)',
+      'weighing_type_label': 'Loại Cân',
       'import_weighed': 'Khối Lượng Đã Cân Nhập (kg)',
       'export_weighed': 'Khối Lượng Đã Cân Xuất (kg)',
+      'no_history_data': 'Không có dữ liệu lịch sử.',
 
       // Weighing Controller Messages
       'already_weighed_import':
@@ -261,7 +265,7 @@ class LanguageService extends ChangeNotifier {
     'en': {
       // Login Screen
       'login_title': 'Login',
-      'weighing_program': 'SEMI-FINISHED GLUE WEIGHING PROGRAM',
+      'weighing_program': 'SEMI-FINISHED GLUE WEIGHING SOP',
       'card_number': 'User ID',
       'factory': 'Factory',
       'login_button': 'Login',
@@ -301,7 +305,7 @@ class LanguageService extends ChangeNotifier {
       'weighing_warehouse': 'Weighing Warehouse',
       'dashboard': 'Dashboard',
       'history': 'Weighing History',
-      'pending_data': 'Pending Data',
+      'pending_data': 'Waiting Data',
       'app_version': 'Weighing Station App - Version',
       'not_connected':
           'Not connected to scale! Redirecting to connection page...',
@@ -358,8 +362,8 @@ class LanguageService extends ChangeNotifier {
       'weight_by_shift': 'Weight By Shift',
 
       // Pending Sync Screen
-      'pending_sync_title': 'Pending Weighing Data (Offline)',
-      'no_pending_data': 'No data pending for sync.',
+      'pending_sync_title': 'Weighing Data (Offline)',
+      'no_pending_data': 'No data waiting for sync.',
       'pending_count': 'Pending',
       'failed_count': 'Sync Failed',
       'sync_now': 'Sync Now',
@@ -427,14 +431,18 @@ class LanguageService extends ChangeNotifier {
       'batch_count': 'Batch Count',
 
       // Weighing Table Headers
+      'code_header': 'Code',
       'glue_name': 'Glue Name',
       'batch_number': 'Batch No.',
       'machine_number': 'Machine No.',
       'operator': 'Operator',
       'weighing_time': 'Weighing Time',
       'batch_weight': 'Batch Weight (kg)',
+      'weighed_weight': 'Weighed Weight(kg)',
+      'weighing_type_label': 'Weighing Type',
       'import_weighed': 'Imported Weight (kg)',
       'export_weighed': 'Exported Weight (kg)',
+      'no_history_data': 'No history data available.',
 
       // Weighing Controller Messages
       'already_weighed_import':
