@@ -28,13 +28,13 @@ class UpdateAlertDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Phiên bản mới: $latestVersion (Hiện tại: $currentVersion)',
+              '${lang.translate('new_version')}: $latestVersion (${lang.translate('current_version')}: $currentVersion)',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Thay đổi:',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              '${lang.translate('changes')}:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(changelog),

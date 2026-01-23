@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import '../../services/language_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../services/update_service.dart';
 import 'widgets/update_alert_dialog.dart';
@@ -155,17 +156,17 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFFB0D9F3),
+    return Scaffold(
+      backgroundColor: const Color(0xFFB0D9F3),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: Color.fromARGB(255, 0, 0, 0)),
-            SizedBox(height: 20),
+            const CircularProgressIndicator(color: Color.fromARGB(255, 0, 0, 0)),
+            const SizedBox(height: 20),
             Text(
-              'Đang khởi tạo ứng dụng...',
-              style: TextStyle(color: Color.fromARGB(255, 0, 0, 0), fontSize: 16),
+              LanguageService().translate('splash_initializing'),
+              style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0), fontSize: 16),
             ),
           ],
         ),

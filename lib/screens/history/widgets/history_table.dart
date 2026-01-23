@@ -24,31 +24,50 @@ class SummaryData {
 }
 
 class HistoryTable extends StatelessWidget {
-  final List<dynamic> records; // <-- Đổi tên biến (hoặc giữ 'records' nếu bạn muốn)
+  final List<dynamic>
+  records; // <-- Đổi tên biến (hoặc giữ 'records' nếu bạn muốn)
   const HistoryTable({super.key, required this.records});
 
   @override
   Widget build(BuildContext context) {
-    const headerStyle = TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 13);
+    final lang = LanguageService();
+    const headerStyle = TextStyle(
+      fontWeight: FontWeight.bold,
+      color: Colors.black,
+      fontSize: 13,
+    );
     const cellStyle = TextStyle(fontSize: 14);
-    const summaryStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87);
+    const summaryStyle = TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.bold,
+      color: Colors.black87,
+    );
 
     // --- (Hàm helper headerCell, dataCell, formatDateTime giữ nguyên) ---
     Widget headerCell(String title, int flex) => Expanded(
-        flex: flex,
-        child: Container(
-          color: const Color(0xFF40B9FF), // Màu xanh nhạt header
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
-          child: Center(
-              child: Text(title, style: headerStyle, textAlign: TextAlign.center)),
-        ));
-  Widget dataCell(String text, int flex, {TextAlign align = TextAlign.center}) => Expanded(
+      flex: flex,
+      child: Container(
+        color: const Color(0xFF40B9FF), // Màu xanh nhạt header
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Center(
+          child: Text(title, style: headerStyle, textAlign: TextAlign.center),
+        ),
+      ),
+    );
+    Widget dataCell(
+      String text,
+      int flex, {
+      TextAlign align = TextAlign.center,
+    }) => Expanded(
       flex: flex,
       child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 4.0),
-          child: Text(text, style: cellStyle, textAlign: TextAlign.center)));
+        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 4.0),
+        child: Text(text, style: cellStyle, textAlign: TextAlign.center),
+      ),
+    );
 
-    Widget verticalDivider() => Container(width: 1, color: Colors.white.withValues(alpha: 1));
+    Widget verticalDivider() =>
+        Container(width: 1, color: Colors.white.withValues(alpha: 1));
     // Định dạng ngày giờ
     String formatDateTime(DateTime? dt) {
       if (dt == null) return '---';
@@ -62,7 +81,7 @@ class HistoryTable extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[300]!)
+        border: Border.all(color: Colors.grey[300]!),
       ),
       child: Column(
         children: [
@@ -70,15 +89,23 @@ class HistoryTable extends StatelessWidget {
           IntrinsicHeight(
             child: Row(
               children: [
-                headerCell('Mã Code', 3), verticalDivider(),
-                headerCell('Tên Phôi Keo', 4), verticalDivider(),
-                headerCell('Số Mẻ', 3), verticalDivider(),
-                headerCell('Số Máy', 3), verticalDivider(),
-                headerCell('Người Thao Tác', 4), verticalDivider(),
-                headerCell('Thời Gian Cân', 4), verticalDivider(),
-                headerCell('KL Mẻ(kg)', 3), verticalDivider(),
-                headerCell('KL Đã Cân(kg)', 3), verticalDivider(),
-                headerCell('Loại Cân', 3), 
+                headerCell(lang.translate('header_code'), 3),
+                verticalDivider(),
+                headerCell(lang.translate('header_glue_name'), 4),
+                verticalDivider(),
+                headerCell(lang.translate('header_batch'), 3),
+                verticalDivider(),
+                headerCell(lang.translate('header_machine'), 3),
+                verticalDivider(),
+                headerCell(lang.translate('header_operator'), 4),
+                verticalDivider(),
+                headerCell(lang.translate('header_time'), 4),
+                verticalDivider(),
+                headerCell(lang.translate('header_batch_weight'), 3),
+                verticalDivider(),
+                headerCell(lang.translate('header_weighed_weight'), 3),
+                verticalDivider(),
+                headerCell(lang.translate('header_weighing_type'), 3),
               ],
             ),
           ),
@@ -87,12 +114,19 @@ class HistoryTable extends StatelessWidget {
           Expanded(
             child: Container(
               color: Colors.white,
-              child: records.isEmpty // Đổi tên 'displayList' thành 'records'
-                ? Center(child: Text('Không có dữ liệu lịch sử.', style: TextStyle(color: Colors.grey[600])))
-                : ListView.builder(
-                    itemCount: records.length, // Dùng list từ controller
-                    itemBuilder: (context, index) {
-                      final item = records[index];
+              child:
+                  records
+                          .isEmpty // Đổi tên 'displayList' thành 'records'
+                      ? Center(
+                        child: Text(
+                          lang.translate('history_empty'),
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      )
+                      : ListView.builder(
+                        itemCount: records.length, // Dùng list từ controller
+                        itemBuilder: (context, index) {
+                          final item = records[index];
 
                       if (item is WeighingRecord) {
                         // RENDER HÀNG DỮ LIỆU

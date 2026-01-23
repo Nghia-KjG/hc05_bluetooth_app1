@@ -14,6 +14,13 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
 import java.io.File
+import android.content.pm.PackageInstaller
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
+import android.os.Build
+import java.io.FileInputStream
 
 class MainActivity: FlutterActivity(), IBluetooth {
     private val METHOD_CHANNEL = "com.hc.bluetooth.method_channel"
@@ -24,9 +31,54 @@ class MainActivity: FlutterActivity(), IBluetooth {
     private lateinit var bluetoothManage: AllBluetoothManage
     private var eventSink: EventChannel.EventSink? = null
     private val scannedDevices = mutableMapOf<String, DeviceModule>()
+    
+    companion object {
+        private const val INSTALL_ACTION = "com.example.hc05_bluetooth_app.INSTALL_ACTION"
+    }
+    
+    private val installReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (val status = intent?.getIntExtra(PackageInstaller.EXTRA_STATUS, -1)) {
+                PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                    // User needs to confirm - launch the confirm intent
+                    val confirmIntent = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+                    confirmIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    try {
+                        startActivity(confirmIntent)
+                        android.util.Log.i("InstallDebug", "❓ Yêu cầu user xác nhận")
+                    } catch (e: Exception) {
+                        android.util.Log.e("InstallDebug", "❌ Lỗi mở confirm intent: ${e.message}")
+                    }
+                }
+                PackageInstaller.STATUS_SUCCESS -> {
+                    android.util.Log.i("InstallDebug", "✅ Cài đặt thành công!")
+                    // Restart app after 1 second
+                    restartApp()
+                }
+                PackageInstaller.STATUS_FAILURE,
+                PackageInstaller.STATUS_FAILURE_ABORTED,
+                PackageInstaller.STATUS_FAILURE_BLOCKED,
+                PackageInstaller.STATUS_FAILURE_CONFLICT,
+                PackageInstaller.STATUS_FAILURE_INCOMPATIBLE,
+                PackageInstaller.STATUS_FAILURE_INVALID,
+                PackageInstaller.STATUS_FAILURE_STORAGE -> {
+                    val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+                    android.util.Log.e("InstallDebug", "❌ Cài đặt thất bại: $message (status=$status)")
+                }
+            }
+        }
+    }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        
+        // Register install receiver
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(installReceiver, IntentFilter(INSTALL_ACTION), Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(installReceiver, IntentFilter(INSTALL_ACTION))
+        }
+        
         bluetoothManage = AllBluetoothManage(this, this)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
@@ -152,7 +204,7 @@ class MainActivity: FlutterActivity(), IBluetooth {
         }
     }
     
-    /// Cài đặt APK sử dụng FileProvider
+    /// Cài đặt APK sử dụng PackageInstaller API
     private fun installApk(apkPath: String) {
         try {
             val apkFile = File(apkPath)
@@ -161,32 +213,81 @@ class MainActivity: FlutterActivity(), IBluetooth {
                 return
             }
             
-            android.util.Log.i("InstallDebug", "📦 Cài đặt APK: $apkPath")
+            android.util.Log.i("InstallDebug", "📦 Bắt đầu cài đặt qua PackageInstaller: $apkPath")
             
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            val packageInstaller = packageManager.packageInstaller
+            val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
             
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                // Android 7.0+ cần dùng FileProvider
-                val apkUri: Uri = FileProvider.getUriForFile(
-                    this,
-                    "${applicationContext.packageName}.fileprovider",
-                    apkFile
-                )
-                intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                android.util.Log.i("InstallDebug", "🔗 FileProvider URI: $apkUri")
-            } else {
-                // Android 6.0 trở xuống
-                val apkUri = Uri.fromFile(apkFile)
-                intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
+            // Create session
+            val sessionId = packageInstaller.createSession(params)
+            val session = packageInstaller.openSession(sessionId)
+            
+            // Write APK to session
+            FileInputStream(apkFile).use { input ->
+                session.openWrite("package", 0, apkFile.length()).use { output ->
+                    input.copyTo(output)
+                    session.fsync(output)
+                }
             }
             
-            startActivity(intent)
-            android.util.Log.i("InstallDebug", "✅ Đã mở trình cài đặt")
+            // Create PendingIntent for install result
+            val intent = Intent(INSTALL_ACTION)
+            intent.setPackage(packageName)
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                sessionId,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            )
+            
+            // Commit session
+            session.commit(pendingIntent.intentSender)
+            session.close()
+            
+            android.util.Log.i("InstallDebug", "✅ Session committed, chờ user xác nhận...")
         } catch (e: Exception) {
             android.util.Log.e("InstallDebug", "❌ Lỗi: ${e.message}")
             e.printStackTrace()
+        }
+    }
+    
+    /// Restart app sau khi cài đặt thành công
+    private fun restartApp() {
+        try {
+            android.util.Log.i("InstallDebug", "🔄 Đang restart app...")
+            
+            // Đóng app hiện tại và mở lại sau 1.5 giây
+            val intent = packageManager.getLaunchIntentForPackage(packageName)
+            intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+            )
+            
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            alarmManager.setExact(
+                android.app.AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + 1500,
+                pendingIntent
+            )
+            
+            // Exit app
+            finishAffinity()
+            System.exit(0)
+        } catch (e: Exception) {
+            android.util.Log.e("InstallDebug", "❌ Lỗi restart: ${e.message}")
+        }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            unregisterReceiver(installReceiver)
+        } catch (e: Exception) {
+            // Ignore if already unregistered
         }
     }
     

@@ -36,6 +36,20 @@ class LanguageService extends ChangeNotifier {
   // Định nghĩa translations
   static final Map<String, Map<String, String>> _translations = {
     'vi': {
+      'splash_initializing': 'Đang khởi tạo ứng dụng...',
+      //splash screen
+      'update_available': 'Cập nhật phiên bản mới',
+      'later': 'Hủy',
+      'update_now': 'Cập nhật ngay',
+      'new_version': 'Phiên bản mới',
+      'current_version': 'Hiện tại',
+      'changes': 'Thay đổi',
+      //update progress dialog
+      'downloading': 'Đang tải xuống',
+      'downloading_update': 'Đang tải bản cập nhật...',
+      'installing_update': 'Đang cài đặt bản cập nhật...',
+      'update_failed': 'Cập nhật thất bại. Vui lòng thử lại sau.',
+
       // Login Screen
       'login_title': 'Đăng nhập',
       'weighing_program': 'LƯU TRÌNH CÂN KEO BÁN THÀNH PHẨM',
@@ -128,6 +142,16 @@ class LanguageService extends ChangeNotifier {
       'filter_code': 'Mã code',
       'filter_ovno': 'OVNO',
       'search_hint': 'Tìm kiếm...',
+      'header_code': 'Mã Code',
+      'header_glue_name': 'Tên Phôi Keo',
+      'header_batch': 'Số Mẻ',
+      'header_machine': 'Số Máy',
+      'header_operator': 'Người Thao Tác',
+      'header_time': 'Thời Gian Cân',
+      'header_batch_weight': 'KL Mẻ(kg)',
+      'header_weighed_weight': 'KL Đã Cân(kg)',
+      'header_weighing_type': 'Loại Cân',
+      'history_empty': 'Không có dữ liệu lịch sử.',
 
       // Dashboard Screen
       'dashboard_title': 'Dashboard - Tổng Quan',
@@ -259,6 +283,20 @@ class LanguageService extends ChangeNotifier {
       'parse_mixtime_error': 'Lỗi parse mixTime',
     },
     'en': {
+      //splash screen
+      'splash_initializing': 'Initializing application...',
+      'update_available': 'New Version Available',
+      'later': 'Later',
+      'update_now': 'Update Now',
+      'new_version': 'New Version',
+      'current_version': 'Current',
+      'changes': 'Changes',
+      //update progress dialog
+      'downloading': 'Downloading',
+      'downloading_update': 'Downloading update...',
+      'installing_update': 'Installing update...',
+      'update_failed': 'Update failed. Please try again later.',
+
       // Login Screen
       'login_title': 'Login',
       'weighing_program': 'SEMI-FINISHED GLUE WEIGHING PROGRAM',
@@ -352,6 +390,16 @@ class LanguageService extends ChangeNotifier {
       'filter_code': 'Code',
       'filter_ovno': 'OVNO',
       'search_hint': 'Search...',
+      'header_code': 'Code',
+      'header_glue_name': 'Glue Name',
+      'header_batch': 'Batch',
+      'header_machine': 'Machine',
+      'header_operator': 'Operator',
+      'header_time': 'Time',
+      'header_batch_weight': 'Batch kg',
+      'header_weighed_weight': 'Weighed kg',
+      'header_weighing_type': 'Type',
+      'history_empty': 'No history data available.',
 
       // Dashboard Screen
       'dashboard_title': 'Dashboard - Overview',
