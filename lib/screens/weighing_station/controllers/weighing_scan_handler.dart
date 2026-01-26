@@ -90,7 +90,20 @@ class WeighingScanHandler {
     final response = await http.get(url).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      final data = json.decode(response.body);
+      
+      // Kiểm tra isEmpty từ backend
+      final isEmpty = data['isEmpty'];
+      if (isEmpty == 1 || isEmpty == true) {
+        if (kDebugMode) {
+          print('⚠️ Mã $code đã cân hoàn tất (isEmpty = 1)');
+        }
+        throw WeighingException(
+          'Mã $code đã cân hoàn tất!\nKhông thể cân tiếp.',
+        );
+      }
+      
+      return data;
     } else if (response.statusCode == 404) {
       final errorData = json.decode(response.body);
       throw WeighingException(

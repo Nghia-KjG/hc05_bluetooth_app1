@@ -504,6 +504,205 @@ class WeighingStationController with ChangeNotifier {
     }
   }
 
+  /// Hoàn tất xuất hết
+  Future<bool> completeExportAll(
+    BuildContext context,
+    double currentWeight,
+  ) async {
+    // Kiểm tra cơ bản
+    if (_records.isEmpty || _scannedCode == null) {
+      NotificationService().showToast(
+        context: context,
+        message: LanguageService().translate('no_code_scanned'),
+        type: ToastType.error,
+      );
+      return false;
+    }
+
+    final currentRecord = _records.firstWhere(
+      (r) => r.maCode == _scannedCode,
+      orElse: () => _records[0],
+    );
+
+    // Kiểm tra xem có phải đang ở chế độ xuất không
+    if (_selectedWeighingType != WeighingType.xuat &&
+        !(_selectedWeighingType == WeighingType.canLai &&
+            _originalWeighingType == WeighingType.xuat)) {
+      NotificationService().showToast(
+        context: context,
+        message: LanguageService().translate('export_mode_required'),
+        type: ToastType.error,
+      );
+      return false;
+    }
+
+    // Tính khối lượng còn lại nếu xuất hết
+    final totalNhap = _calculator.weighedNhapAmount;
+    final alreadyXuat = _calculator.weighedXuatAmount;
+    final remaining = totalNhap - alreadyXuat - currentWeight;
+    final tolerance = totalNhap * 0.02; // 2%
+
+    if (kDebugMode) {
+      print('📊 Kiểm tra xuất hết:');
+      print('  - Tổng nhập: ${totalNhap.toStringAsFixed(2)} kg');
+      print('  - Đã xuất: ${alreadyXuat.toStringAsFixed(2)} kg');
+      print('  - Khối lượng xuất này: ${currentWeight.toStringAsFixed(2)} kg');
+      print('  - Còn lại sau xuất: ${remaining.toStringAsFixed(2)} kg');
+      print('  - Dung sai 2%: ${tolerance.toStringAsFixed(2)} kg');
+    }
+
+    // Kiểm tra xem còn lại có quá 2% không
+    if (remaining.abs() > tolerance) {
+      if (context.mounted) {
+        final message = LanguageService().translate('remaining_exceeds_tolerance')
+            .replaceAll('{0}', remaining.toStringAsFixed(2))
+            .replaceAll('{1}', tolerance.toStringAsFixed(2));
+        NotificationService().showToast(
+          context: context,
+          message: message,
+          type: ToastType.error,
+        );
+      }
+      return false;
+    }
+
+    // Hiển thị dialog xác nhận
+    if (context.mounted) {
+      final bool? confirm = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          final lang = LanguageService();
+          return AlertDialog(
+            title: Text('⚠️ ${lang.translate('confirm')}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  lang.translate('confirm_export_all'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Text('${lang.translate('code')}: ${currentRecord.maCode}'),
+                Text('${lang.translate('total_imported')} ${totalNhap.toStringAsFixed(2)} kg'),
+                Text('${lang.translate('already_exported')} ${alreadyXuat.toStringAsFixed(2)} kg'),
+                Text(
+                  '${lang.translate('export_this_time')} ${currentWeight.toStringAsFixed(2)} kg',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${lang.translate('weight_loss')} ${remaining.toStringAsFixed(2)} kg',
+                  style: TextStyle(
+                    color: remaining.abs() < 0.1 ? Colors.green : Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(lang.translate('cancel')),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(lang.translate('export_all_button')),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirm != true) {
+        return false;
+      }
+    }
+
+    // Gọi API xuất hết
+    // final db = await _dbHelper.database;
+    await _serverStatus.checkServer();
+    final bool isServerConnected = _serverStatus.isServerConnected;
+
+    if (!isServerConnected) {
+      if (context.mounted) {
+        NotificationService().showToast(
+          context: context,
+          message: LanguageService().translate('export_all_requires_network'),
+          type: ToastType.error,
+        );
+      }
+      return false;
+    }
+
+    try {
+      final result = await _completionHandler.completeExportAll(
+        maCode: currentRecord.maCode,
+        currentWeight: currentWeight,
+        deviceName: getConnectedDeviceName(),
+      );
+
+      if (kDebugMode) {
+        print('✅ Xuất hết thành công: $result');
+      }
+
+      // Cập nhật UI
+      currentRecord.isSuccess = true;
+      currentRecord.mixTime = DateTime.now();
+      currentRecord.realQty = currentWeight;
+      currentRecord.loai = 'xuat';
+
+      _calculator.reset();
+
+      // Reset chế độ cân lại nếu có
+      if (_selectedWeighingType == WeighingType.canLai) {
+        _selectedWeighingType = WeighingType.nhap;
+        _reweighCode = null;
+        _originalWeighingType = null;
+      }
+
+      // Phát âm thanh thành công
+      if (SettingsService().beepOnSuccess) {
+        try {
+          if (kDebugMode) print('🎵 playSuccessBeep() từ completeExportAll');
+          await AudioService().playSuccessBeep();
+        } catch (e) {
+          if (kDebugMode) print('🔇 Lỗi playSuccessBeep(): $e');
+        }
+      }
+
+      if (context.mounted) {
+        final message = LanguageService().translate('export_all_success')
+            .replaceAll('{0}', currentRecord.maCode)
+            .replaceAll('{1}', currentWeight.toStringAsFixed(2));
+        NotificationService().showToast(
+          context: context,
+          message: message,
+          type: ToastType.success,
+        );
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ ${LanguageService().translate('export_all_error').replaceAll('{0}', e.toString())}');
+      }
+      if (context.mounted) {
+        final message = LanguageService().translate('export_all_error')
+            .replaceAll('{0}', e.toString());
+        NotificationService().showToast(
+          context: context,
+          message: message,
+          type: ToastType.error,
+        );
+      }
+      return false;
+    }
+  }
+
   /// Hoàn tất cân
   Future<bool> completeCurrentWeighing(
     BuildContext context,

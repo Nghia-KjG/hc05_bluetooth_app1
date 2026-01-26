@@ -521,6 +521,125 @@ class _WeighingStationScreenState extends State<WeighingStationScreen> {
                               final Color textColor =
                                   isInRange ? Colors.white : Colors.indigo;
 
+                              // Kiểm tra xem có đang ở chế độ xuất không
+                              final bool isExportMode = _controller.isXuatMode;
+
+                              // Nếu đang ở chế độ xuất, hiển thị 2 nút
+                              if (isExportMode && _controller.scannedCode != null) {
+                                return Row(
+                                  children: [
+                                    // Nút Hoàn tất (thu nhỏ)
+                                    Expanded(
+                                      flex: 2,
+                                      child: ElevatedButton(
+                                        onPressed: () async {
+                                          if (_controller.khoiLuongMe == 0.0) {
+                                            NotificationService().showToast(
+                                              context: context,
+                                              message: LanguageService().translate(
+                                                'please_scan_to_weigh',
+                                              ),
+                                              type: ToastType.info,
+                                            );
+                                            return;
+                                          }
+
+                                          final bool success = await _controller
+                                              .completeCurrentWeighing(
+                                                context,
+                                                currentWeight,
+                                              );
+
+                                          if (success) {
+                                            _scanTextController.clear();
+                                            Future.delayed(
+                                              const Duration(milliseconds: 100),
+                                              () {
+                                                if (mounted) {
+                                                  _scanFocusNode.requestFocus();
+                                                }
+                                              },
+                                            );
+                                          }
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: buttonColor,
+                                          foregroundColor: textColor,
+                                          elevation: 2,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 16,
+                                          ),
+                                          minimumSize: const Size(0, 48),
+                                        ),
+                                        child: Text(
+                                          LanguageService().translate('complete'),
+                                          style: const TextStyle(fontSize: 24),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // Nút Xuất hết
+                                    Expanded(
+                                      flex: 1,
+                                      child: ElevatedButton(
+                                        onPressed: () async {
+                                          if (_controller.khoiLuongMe == 0.0) {
+                                            NotificationService().showToast(
+                                              context: context,
+                                              message: LanguageService().translate(
+                                                'please_scan_to_weigh',
+                                              ),
+                                              type: ToastType.info,
+                                            );
+                                            return;
+                                          }
+
+                                          final bool success = await _controller
+                                              .completeExportAll(
+                                                context,
+                                                currentWeight,
+                                              );
+
+                                          if (success) {
+                                            _scanTextController.clear();
+                                            Future.delayed(
+                                              const Duration(milliseconds: 100),
+                                              () {
+                                                if (mounted) {
+                                                  _scanFocusNode.requestFocus();
+                                                }
+                                              },
+                                            );
+                                          }
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.orange,
+                                          foregroundColor: Colors.white,
+                                          elevation: 2,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 16,
+                                          ),
+                                          minimumSize: const Size(0, 48),
+                                        ),
+                                        child: Text(
+                                          LanguageService().translate('export_all'),
+                                          style: const TextStyle(fontSize: 24),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+
+                              // Chế độ nhập hoặc chưa scan - hiển thị 1 nút như cũ
                               return SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(

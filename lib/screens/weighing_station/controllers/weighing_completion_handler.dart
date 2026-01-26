@@ -325,4 +325,50 @@ class WeighingCompletionHandler {
       }
     }
   }
+
+  /// Xuất hết - API riêng
+  Future<Map<String, dynamic>> completeExportAll({
+    required String maCode,
+    required double currentWeight,
+    required String? deviceName,
+  }) async {
+    final thoiGianCan = DateTime.now();
+    final thoiGianString = DateFormat(
+      'yyyy-MM-dd HH:mm:ss',
+    ).format(thoiGianCan);
+
+    // Chuẩn bị body request
+    final Map<String, dynamic> body = {
+      'maCode': maCode,
+      'khoiLuongCan': currentWeight,
+      'thoiGianCan': thoiGianString,
+      'WUserID': AuthService().mUserID,
+      'device': deviceName,
+    };
+
+    if (kDebugMode) {
+      print('🛰️ Gọi API xuất hết');
+      print('  - Endpoint: /api/complete-export-all');
+      print('  - MaCode: $maCode');
+      print('  - Khối lượng: $currentWeight kg');
+    }
+
+    final url = Uri.parse('$apiBaseUrl/api/complete-export-all');
+    final response = await http
+        .post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(body),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return json.decode(response.body);
+    } else {
+      final errorData = json.decode(response.body);
+      throw WeighingException(
+        errorData['message'] ?? 'Lỗi server ${response.statusCode}',
+      );
+    }
+  }
 }

@@ -107,6 +107,7 @@ class LanguageService extends ChangeNotifier {
       'remaining': 'Còn lại:',
       'scan_code': 'Quét mã Code',
       'complete': 'Hoàn tất',
+      'export_all': 'Xuất hết',
       'weighing_import': 'Cân Nhập',
       'weighing_export': 'Cân Xuất',
       'weighing_reweigh': 'Cân Lại',
@@ -281,6 +282,21 @@ class LanguageService extends ChangeNotifier {
       'code_not_found': 'Không tìm thấy mã',
       'fully_exported_cannot_weigh': 'Mã này đã XUẤT HẾT. Không thể cân thêm!',
       'parse_mixtime_error': 'Lỗi parse mixTime',
+
+      // Export All Feature
+      'export_mode_required': 'Chỉ có thể xuất hết khi đang ở chế độ cân xuất!',
+      'confirm_export_all': 'Bạn có chắc chắn muốn XUẤT HẾT?',
+      'export_all_button': 'Xuất hết',
+      'weight_loss': 'KL hao hụt:',
+      'total_imported': 'Tổng nhập:',
+      'already_exported': 'Đã xuất:',
+      'export_this_time': 'Xuất lần này:',
+      'remaining_exceeds_tolerance':
+          'Lỗi: Khối lượng còn lại ({0} kg) vượt quá dung sai 2% ({1} kg)!\nVui lòng kiểm tra lại trọng lượng.',
+      'export_all_requires_network': 'Chức năng "Xuất hết" yêu cầu kết nối mạng!',
+      'export_all_success':
+          '✅ XUẤT HẾT thành công!\nMã: {0}\nKhối lượng: {1} kg',
+      'export_all_error': 'Lỗi xuất hết: {0}',
     },
     'en': {
       //splash screen
@@ -355,6 +371,7 @@ class LanguageService extends ChangeNotifier {
       'remaining': 'Remaining:',
       'scan_code': 'Scan Code',
       'complete': 'Complete',
+      'export_all': 'Export All',
       'weighing_import': 'Import',
       'weighing_export': 'Export',
       'weighing_reweigh': 'Reweigh',
@@ -530,6 +547,21 @@ class LanguageService extends ChangeNotifier {
       'fully_exported_cannot_weigh':
           'This code has been FULLY EXPORTED. Cannot weigh more!',
       'parse_mixtime_error': 'Error parsing mixTime',
+
+      // Export All Feature
+      'export_mode_required': 'Can only export all in export weighing mode!',
+      'confirm_export_all': 'Are you sure you want to EXPORT ALL?',
+      'export_all_button': 'Export All',
+      'weight_loss': 'Weight Loss:',
+      'total_imported': 'Total Imported:',
+      'already_exported': 'Already Exported:',
+      'export_this_time': 'Export This Time:',
+      'remaining_exceeds_tolerance':
+          'Error: Remaining weight ({0} kg) exceeds 2% tolerance ({1} kg)!\nPlease check the weight again.',
+      'export_all_requires_network': 'Export All function requires network connection!',
+      'export_all_success':
+          '✅ EXPORT ALL successful!\nCode: {0}\nWeight: {1} kg',
+      'export_all_error': 'Export all error: {0}',
     },
   };
 }
