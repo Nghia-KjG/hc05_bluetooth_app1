@@ -155,7 +155,7 @@ class LanguageService extends ChangeNotifier {
       'history_empty': 'Không có dữ liệu lịch sử.',
 
       // Dashboard Screen
-      'dashboard_title': 'Dashboard - Tổng Quan',
+      'dashboard_title': 'Dashboard - Tổng Quan Kho',
       'weight_by_shift': 'Khối Lượng Cân Theo Ca',
 
       // Pending Sync Screen
@@ -199,6 +199,8 @@ class LanguageService extends ChangeNotifier {
       'exported_weight': 'Khối lượng cân xuất',
       'inventory_weight': 'Khối lượng tồn kho',
       'imported_weight': 'Khối lượng cân nhập',
+      'no_data': 'Không có dữ liệu',
+      'total': 'Tổng',
 
       // Connect Bluetooth Screen
       'search_scale': 'Tìm kiếm Cân',
@@ -462,6 +464,8 @@ class LanguageService extends ChangeNotifier {
       'exported_weight': 'Exported Weight',
       'inventory_weight': 'Inventory Weight',
       'imported_weight': 'Imported Weight',
+      'no_data': 'No data available',
+      'total': 'Total',
 
       // Connect Bluetooth Screen
       'search_scale': 'Search Scale',

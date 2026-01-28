@@ -5,6 +5,7 @@ import '../../services/language_service.dart';
 import '../../widgets/main_app_bar.dart';
 import 'widgets/hourly_weighing_chart.dart';
 import 'widgets/inventory_pie_chart.dart';
+import 'widgets/warehouse_list_widget.dart';
 import '../../widgets/date_picker_input.dart';
 import 'controllers/dashboard_controller.dart';
 
@@ -64,7 +65,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: AnimatedBuilder(
           animation: Listenable.merge([_controller, _languageService]),
           builder: (context, child) {
-            return Container(
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
@@ -78,7 +79,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Expanded(
+                  // Phần trên: 2 biểu đồ với chiều cao cố định
+                  SizedBox(
+                    height: 400,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -134,12 +137,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             // --- 7. Get data from controller ---
                             child: InventoryPieChart(
-                              totalNhap: _controller.totalNhap,
-                              totalXuat: _controller.totalXuat,
+                              glueTypeData: _controller.glueTypeData,
+                              totalTon: _controller.totalTon,
                             ),
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Phần dưới: Danh sách kho với chiều cao cố định
+                  SizedBox(
+                    height: 500,
+                    child: WarehouseListWidget(
+                      warehouseSummary: _controller.warehouseSummary,
+                      warehouseDetails: _controller.warehouseDetails,
+                      selectedOVNO: _controller.selectedOVNO,
+                      isLoadingDetails: _controller.isLoadingDetails,
+                      onOVNOTap: (ovNO) {
+                        _controller.loadWarehouseDetails(ovNO);
+                      },
+                      onBackTap: () {
+                        _controller.clearWarehouseDetails();
+                      },
                     ),
                   ),
                 ],
